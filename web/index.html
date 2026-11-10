@@ -26,6 +26,16 @@
     .speed { font-size: clamp(64px, 10vw, 98px); font-weight: 750; line-height: .95; letter-spacing: -.08em; }
     .unit { font-size: 19px; color: #d3e7df; }
     .gust { margin-top: 20px; font-size: 15px; color: #e0eee9; }
+    .intensity { position: relative; z-index: 1; margin-top: 21px; }
+    .intensity-heading { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 8px; color: #e0eee9; font-size: 12px; }
+    .intensity-name { color: white; font-weight: 750; }
+    .intensity-track { position: relative; display: flex; height: 13px; overflow: visible; border-radius: 999px; }
+    .intensity-segment { width: 33.333%; border-right: 2px solid #176b57; }
+    .intensity-segment:first-child { background: #64c88a; border-radius: 999px 0 0 999px; }
+    .intensity-segment:nth-child(2) { background: #f1ca4e; }
+    .intensity-segment:last-child { background: #e66f61; border: 0; border-radius: 0 999px 999px 0; }
+    .intensity-marker { position: absolute; top: -4px; bottom: -4px; left: 0; width: 4px; border: 1px solid #142c29; border-radius: 3px; background: white; box-shadow: 0 1px 4px #0006; transform: translateX(-50%); transition: left .3s ease; }
+    .intensity-scale { display: flex; justify-content: space-between; margin-top: 5px; color: #c8e1d8; font-size: 10px; }
     .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-content: center; }
     .stat { border-bottom: 1px solid var(--line); padding: 7px 0 14px; }
     .stat:last-child, .stat:nth-last-child(2) { border-bottom: 0; }
@@ -89,6 +99,14 @@
         <p class="eyebrow">Latest observation</p>
         <div class="reading"><span class="speed" id="speed">—</span><span class="unit">mph</span></div>
         <p class="gust" id="gust">Gust —</p>
+        <div class="intensity">
+          <div class="intensity-heading"><span>Wind intensity</span><span class="intensity-name" id="intensity-name">Waiting for reading</span></div>
+          <div class="intensity-track" id="intensity-meter" role="meter" aria-label="Current wind speed intensity" aria-valuemin="0" aria-valuemax="30" aria-valuenow="0">
+            <span class="intensity-segment" aria-hidden="true"></span><span class="intensity-segment" aria-hidden="true"></span><span class="intensity-segment" aria-hidden="true"></span>
+            <span class="intensity-marker" id="intensity-marker" aria-hidden="true" hidden></span>
+          </div>
+          <div class="intensity-scale" aria-hidden="true"><span>0</span><span>10</span><span>20</span><span>30+ mph</span></div>
+        </div>
         <p class="source" id="observed">Waiting for the first saved observation</p>
       </article>
       <article class="card stats" aria-label="Wind details">
@@ -136,6 +154,26 @@
     const compassPoints = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
     const compass = (degrees) => degrees == null ? "—" : compassPoints[Math.round(degrees / 45) % 8];
     const time = (stamp) => stamp ? new Date(stamp).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "Time unavailable";
+
+    function updateIntensity(speed) {
+      const meter = $("intensity-meter");
+      const marker = $("intensity-marker");
+      const name = $("intensity-name");
+      if (speed == null) {
+        name.textContent = "Unavailable";
+        marker.hidden = true;
+        meter.removeAttribute("aria-valuenow");
+        meter.setAttribute("aria-valuetext", "Wind speed unavailable");
+        return;
+      }
+      const bounded = Math.max(0, Math.min(30, speed));
+      marker.style.left = `${bounded / 30 * 100}%`;
+      marker.hidden = false;
+      const category = speed < 10 ? "Low" : speed < 20 ? "Moderate" : "High";
+      name.textContent = category;
+      meter.setAttribute("aria-valuenow", bounded.toFixed(1));
+      meter.setAttribute("aria-valuetext", `${speed.toFixed(1)} mph, ${category} intensity`);
+    }
 
     const skateDirection = $("skate-direction");
     skateDirection.value = localStorage.getItem("skate-direction-degrees") || "180";
@@ -369,6 +407,7 @@
           window.latestWind = latest;
           updateSkateOutlook(latest);
           $("speed").textContent = latest.wind_speed_mph == null ? "—" : latest.wind_speed_mph.toFixed(1);
+          updateIntensity(latest.wind_speed_mph);
           $("gust").textContent = `Gust ${latest.wind_gust_mph == null ? "—" : `${latest.wind_gust_mph.toFixed(1)} mph`}`;
           const calm = latest.wind_speed_mph != null && latest.wind_speed_mph < 0.5;
           const directionUnavailable = latest.wind_direction_deg == null;
