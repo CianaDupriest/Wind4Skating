@@ -152,11 +152,31 @@
     function updateSkateOutlook(observation) {
       const speed = observation.wind_speed_mph;
       const windFrom = observation.wind_direction_deg;
-      if (speed == null || windFrom == null) {
-        $("verdict").textContent = "Wind data unavailable";
-        $("verdict-copy").textContent = "The latest station report is missing speed or direction.";
+      const verdict = $("verdict");
+      const copy = $("verdict-copy");
+      verdict.className = "verdict";
+      if (speed == null) {
+        verdict.textContent = "Wind speed unavailable";
+        verdict.classList.add("mixed");
+        copy.textContent = "The latest station report did not include a wind speed.";
         $("along-route").textContent = "—";
         $("crosswind").textContent = "—";
+        return;
+      }
+      if (speed < 0.5) {
+        verdict.textContent = "Calm";
+        verdict.classList.add("good");
+        copy.textContent = "The station reports little or no measurable wind.";
+        $("along-route").textContent = "Calm";
+        $("crosswind").textContent = "0.0 mph";
+        return;
+      }
+      if (windFrom == null) {
+        verdict.textContent = "Variable direction";
+        verdict.classList.add("mixed");
+        copy.textContent = `The station reports ${speed.toFixed(1)} mph, but no direction.`;
+        $("along-route").textContent = "Unavailable";
+        $("crosswind").textContent = "Unavailable";
         return;
       }
       const heading = Number(skateDirection.value);
@@ -169,9 +189,6 @@
       $("along-route").textContent = alongLabel;
       $("crosswind").textContent = `${cross.toFixed(1)} mph`;
 
-      const verdict = $("verdict");
-      const copy = $("verdict-copy");
-      verdict.className = "verdict";
       if (speed < 3) {
         verdict.textContent = "Light wind";
         verdict.classList.add("good");
@@ -348,8 +365,11 @@
           updateSkateOutlook(latest);
           $("speed").textContent = latest.wind_speed_mph == null ? "—" : latest.wind_speed_mph.toFixed(1);
           $("gust").textContent = `Gust ${latest.wind_gust_mph == null ? "—" : `${latest.wind_gust_mph.toFixed(1)} mph`}`;
-          $("direction").textContent = latest.wind_direction_deg == null ? "—" : `${Math.round(latest.wind_direction_deg)}°`;
-          $("compass").textContent = compass(latest.wind_direction_deg);
+          const calm = latest.wind_speed_mph != null && latest.wind_speed_mph < 0.5;
+          const directionUnavailable = latest.wind_direction_deg == null;
+          const windLabel = directionUnavailable ? (calm ? "Calm" : latest.wind_speed_mph == null ? "Unavailable" : "Variable") : `${Math.round(latest.wind_direction_deg)}°`;
+          $("direction").textContent = windLabel;
+          $("compass").textContent = directionUnavailable ? windLabel : compass(latest.wind_direction_deg);
           $("observed").textContent = `Observed ${time(latest.observed_at)}`;
           $("status").textContent = `Updated ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} · refreshes every 5 min`;
         } else {
