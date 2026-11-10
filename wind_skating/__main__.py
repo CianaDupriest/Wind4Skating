@@ -20,10 +20,20 @@ WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 def collect(db_path: Path) -> None:
     observation = fetch_latest_observation()
     inserted = save_observation(observation, db_path)
+    fallback = observation.get("fallback_observation")
+    if fallback:
+        save_observation(fallback, db_path)
     speed = observation["wind_speed_mph"]
     speed_text = "missing" if speed is None else f"{speed:.1f} mph"
     status = "saved" if inserted else "already stored"
     print(f"{observation['observed_at']}: {speed_text} ({status})")
+    if fallback:
+        print(
+            f"Saved previous usable report: {fallback['observed_at']} "
+            f"({fallback['wind_speed_mph']:.1f} mph)"
+        )
+    elif observation.get("fallback_lookup_error"):
+        print(f"Could not look up a previous station report: {observation['fallback_lookup_error']}")
 
 
 def _collect_periodically(db_path: Path, interval_seconds: int) -> None:
