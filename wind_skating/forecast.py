@@ -12,7 +12,7 @@ from urllib.request import Request, urlopen
 OKC_LATITUDE = 35.4676
 OKC_LONGITUDE = -97.5164
 POINTS_URL = f"https://api.weather.gov/points/{OKC_LATITUDE},{OKC_LONGITUDE}"
-USER_AGENT = "WindAnalysisForSkating/0.1 (personal weather project)"
+USER_AGENT = "Wind4Skating/1.0 (personal weather project)"
 CACHE_TTL = timedelta(minutes=30)
 _cache: tuple[datetime, dict] | None = None
 

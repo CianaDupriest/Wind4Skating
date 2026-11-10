@@ -14,7 +14,7 @@ OBSERVATION_URL = (
 RECENT_OBSERVATIONS_URL = (
     f"https://api.weather.gov/stations/{STATION_ID}/observations?limit=20"
 )
-USER_AGENT = "WindAnalysisForSkating/0.1 (personal weather project)"
+USER_AGENT = "Wind4Skating/1.0 (personal weather project)"
 
 
 def _number(measurement: dict | None, *, target: str) -> float | None:

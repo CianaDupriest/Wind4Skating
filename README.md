@@ -1,4 +1,4 @@
-# Wind Analysis for Skating
+# Wind4Skating
 
 Collects observed wind readings for Oklahoma City and exposes the stored data as JSON for a website.
 
