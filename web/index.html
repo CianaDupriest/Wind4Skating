@@ -52,22 +52,27 @@
     .rating.mixed { background: #fff3d7; color: #805a08; }
     .forecast-state { padding: 20px 0 4px; color: var(--muted); font-size: 14px; }
     .forecast-updated { color: var(--muted); font-size: 12px; }
-    .chart-card { padding: 22px 24px 18px; }
     .chart-head { display: flex; align-items: start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
     h2 { font-size: 18px; letter-spacing: -.02em; }
-    .chart-wrap { width: 100%; overflow: hidden; }
-    svg { display: block; width: 100%; height: auto; overflow: visible; }
-    .gridline { stroke: #e8eeeb; stroke-width: 1; }
-    .axis-label { fill: #82918d; font: 12px system-ui, sans-serif; }
-    .wind-line { fill: none; stroke: var(--green); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-    .wind-dot { fill: white; stroke: var(--green); stroke-width: 2; }
-    .empty { display: grid; min-height: 235px; place-items: center; padding: 24px; color: var(--muted); text-align: center; }
-    .empty strong { display: block; margin-bottom: 5px; color: var(--ink); }
+    .hourly-card { margin-bottom: 18px; }
+    .day-picker { width: min(260px, 52vw); }
+    .table-wrap { overflow-x: auto; margin-top: 12px; }
+    .hourly-table { width: 100%; min-width: 560px; border-collapse: collapse; text-align: left; }
+    .hourly-table th { color: var(--muted); font-size: 12px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
+    .hourly-table th, .hourly-table td { border-bottom: 1px solid var(--line); padding: 11px 10px; }
+    .hourly-table td { font-size: 14px; }
+    .hourly-table tbody tr:last-child td { border-bottom: 0; }
+    .hourly-time { font-weight: 700; white-space: nowrap; }
+    .hourly-effect { border-radius: 999px; padding: 4px 9px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+    .hourly-effect.good { background: #e5f4eb; color: #176b57; }
+    .hourly-effect.bad { background: #fbe9e6; color: #a3372f; }
+    .hourly-effect.mixed { background: #fff3d7; color: #805a08; }
+    .table-empty { padding: 20px 0; color: var(--muted); font-size: 14px; }
     footer { display: flex; justify-content: space-between; gap: 12px; margin-top: 17px; color: var(--muted); font-size: 12px; }
     .refresh { white-space: nowrap; }
     @media (max-width: 760px) { .skate-card { grid-template-columns: 1fr 1fr; gap: 14px; } }
     @media (max-width: 650px) { main { width: min(100% - 22px, 1000px); padding-top: 22px; } header { align-items: flex-start; } .source.header-source { max-width: 135px; text-align: right; } .hero { grid-template-columns: 1fr; gap: 12px; } .card { border-radius: 18px; padding: 20px; } .stats { grid-template-columns: 1fr 1fr; } footer { flex-direction: column; } }
-    @media (max-width: 520px) { .forecast-row { grid-template-columns: 1fr 1.2fr; } .rating { grid-column: 1 / -1; } }
+    @media (max-width: 520px) { .forecast-row { grid-template-columns: 1fr 1.2fr; } .rating { grid-column: 1 / -1; } .chart-head { align-items: flex-start; } .hourly-card .chart-head { flex-direction: column; } .day-picker { width: 100%; } }
   </style>
 </head>
 <body>
@@ -114,9 +119,13 @@
       <div id="forecast-list" class="forecast-list"><p class="forecast-state">Loading Oklahoma City forecast…</p></div>
     </section>
 
-    <section class="card chart-card" aria-labelledby="history-heading">
-      <div class="chart-head"><div><p class="eyebrow">Collected readings</p><h2 id="history-heading">Wind speed history</h2></div><p class="source">mph · newest 48 readings</p></div>
-      <div class="chart-wrap" id="chart" role="img" aria-label="Chart of observed wind speeds"></div>
+    <section class="card hourly-card" aria-labelledby="hourly-heading">
+      <div class="chart-head">
+        <div><p class="eyebrow">Hourly forecast</p><h2 id="hourly-heading">Wind by hour</h2></div>
+        <div><label class="source" for="forecast-day">Select day</label><select class="day-picker" id="forecast-day" disabled><option>Loading...</option></select></div>
+      </div>
+      <p class="source">Times are Oklahoma City local time. Wind direction shows where it comes from; skate effect uses your selected route direction.</p>
+      <div class="table-wrap" id="hourly-breakdown" aria-live="polite"><p class="table-empty">Loading hourly forecast...</p></div>
     </section>
     <footer><span>Source: National Weather Service · KOKC</span><span class="refresh" id="status">Loading saved readings…</span></footer>
   </main>
@@ -131,7 +140,13 @@
     skateDirection.addEventListener("change", () => {
       localStorage.setItem("skate-direction-degrees", skateDirection.value);
       if (window.latestWind) updateSkateOutlook(window.latestWind);
-      if (window.forecastData) renderForecast(window.forecastData);
+      if (window.forecastData) {
+        renderForecast(window.forecastData);
+        renderHourlyBreakdown(window.forecastData);
+      }
+    });
+    $("forecast-day").addEventListener("change", () => {
+      if (window.forecastData) renderHourlyBreakdown(window.forecastData);
     });
 
     function updateSkateOutlook(observation) {
@@ -174,27 +189,6 @@
         verdict.classList.add("mixed");
         copy.textContent = "Mixed: most of the wind is across your direction.";
       }
-    }
-
-    function drawChart(observations) {
-      const valid = [...observations].filter((x) => x.wind_speed_mph != null).reverse();
-      if (!valid.length) {
-        $("chart").innerHTML = '<div class="empty"><div><strong>No readings saved yet</strong>The server collects a reading on startup. Check back shortly.</div></div>';
-        return;
-      }
-      const width = 800, height = 235, left = 48, right = 18, top = 12, bottom = 34;
-      const plotW = width - left - right, plotH = height - top - bottom;
-      const ceiling = Math.max(10, Math.ceil(Math.max(...valid.map((x) => x.wind_speed_mph)) / 5) * 5);
-      const points = valid.map((x, i) => ({ x: left + (valid.length === 1 ? plotW / 2 : i * plotW / (valid.length - 1)), y: top + plotH - x.wind_speed_mph / ceiling * plotH }));
-      const lines = Array.from({ length: 4 }, (_, i) => {
-        const y = top + i * plotH / 3, value = Math.round(ceiling * (1 - i / 3));
-        return `<line class="gridline" x1="${left}" y1="${y}" x2="${width-right}" y2="${y}"/><text class="axis-label" x="${left-10}" y="${y+4}" text-anchor="end">${value}</text>`;
-      }).join("");
-      const polyline = points.map((p) => `${p.x},${p.y}`).join(" ");
-      const dots = points.map((p) => `<circle class="wind-dot" cx="${p.x}" cy="${p.y}" r="3.4"/>`).join("");
-      const first = new Date(valid[0].observed_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-      const last = new Date(valid[valid.length-1].observed_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-      $("chart").innerHTML = `<svg viewBox="0 0 ${width} ${height}" aria-hidden="true" focusable="false">${lines}<polyline class="wind-line" points="${polyline}"/>${dots}<text class="axis-label" x="${left}" y="${height-7}">${first}</text><text class="axis-label" x="${width-right}" y="${height-7}" text-anchor="end">${last}</text></svg>`;
     }
 
     const directionHeadings = { N: 0, NNE: 22.5, NE: 45, ENE: 67.5, E: 90, ESE: 112.5, SE: 135, SSE: 157.5, S: 180, SSW: 202.5, SW: 225, WSW: 247.5, W: 270, WNW: 292.5, NW: 315, NNW: 337.5 };
@@ -253,6 +247,73 @@
       $("forecast-updated").textContent = data.updated ? `NWS update ${time(data.updated)}` : "";
     }
 
+    function formatForecastDay(key, options = { weekday: "long", month: "short", day: "numeric" }) {
+      const date = new Date(`${key}T18:00:00Z`);
+      return date.toLocaleDateString([], { ...options, timeZone: "America/Chicago" });
+    }
+
+    function renderHourlyBreakdown(data) {
+      const grouped = new Map();
+      for (const period of data.periods || []) {
+        if (!period.start_time) continue;
+        const key = localDateKey(period.start_time);
+        if (!grouped.has(key)) grouped.set(key, []);
+        grouped.get(key).push(period);
+      }
+
+      const picker = $("forecast-day");
+      const keys = [...grouped.keys()].slice(0, 7);
+      if (!keys.length) {
+        picker.replaceChildren(new Option("No forecast days", ""));
+        picker.disabled = true;
+        $("hourly-breakdown").innerHTML = '<p class="table-empty">No hourly forecast is available.</p>';
+        return;
+      }
+
+      const today = localDateKey(new Date().toISOString());
+      const previous = picker.value;
+      picker.replaceChildren(...keys.map((key) => {
+        const label = key === today ? `Today - ${formatForecastDay(key)}` : formatForecastDay(key);
+        return new Option(label, key);
+      }));
+      picker.disabled = false;
+      picker.value = keys.includes(previous) ? previous : keys.includes(today) ? today : keys[0];
+
+      const selected = (grouped.get(picker.value) || []).slice().sort(
+        (a, b) => new Date(a.start_time) - new Date(b.start_time)
+      );
+      if (!selected.length) {
+        $("hourly-breakdown").innerHTML = '<p class="table-empty">No hourly wind details for this day.</p>';
+        return;
+      }
+
+      const heading = Number(skateDirection.value);
+      const rows = selected.map((period) => {
+        const low = period.wind_speed_min_mph;
+        const high = period.wind_speed_max_mph;
+        const speed = low == null || high == null ? null : (low + high) / 2;
+        const windHeading = directionHeadings[period.wind_direction];
+        let effect = "Unavailable", effectClass = "mixed";
+        if (speed != null && windHeading != null) {
+          const windTo = (windHeading + 180) % 360;
+          const delta = ((windTo - heading + 540) % 360) - 180;
+          const headwind = -speed * Math.cos(delta * Math.PI / 180);
+          if (speed < 3) { effect = "Light wind"; effectClass = "good"; }
+          else if (headwind >= 3) { effect = `Headwind ${headwind.toFixed(1)} mph`; effectClass = "bad"; }
+          else if (headwind <= -3) { effect = `Tailwind ${Math.abs(headwind).toFixed(1)} mph`; effectClass = "good"; }
+          else { effect = "Mostly crosswind"; effectClass = "mixed"; }
+        }
+        const timeLabel = new Date(period.start_time).toLocaleTimeString([], {
+          hour: "numeric", minute: "2-digit", timeZone: "America/Chicago",
+        });
+        const speedLabel = low == null || high == null ? "Unavailable" :
+          `${Math.round(low)}${Math.round(low) === Math.round(high) ? "" : `-${Math.round(high)}`} mph`;
+        const directionLabel = period.wind_direction ? `${period.wind_direction} (from)` : "Variable / unavailable";
+        return `<tr><td class="hourly-time">${safeText(timeLabel)}</td><td>${safeText(speedLabel)}</td><td>${safeText(directionLabel)}</td><td><span class="hourly-effect ${effectClass}">${safeText(effect)}</span></td></tr>`;
+      }).join("");
+      $("hourly-breakdown").innerHTML = `<table class="hourly-table"><thead><tr><th scope="col">Time</th><th scope="col">Wind speed</th><th scope="col">Wind direction</th><th scope="col">For your route</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+
     async function loadForecast() {
       try {
         const response = await fetch("/api/forecast", { cache: "no-store" });
@@ -266,6 +327,7 @@
         const data = await response.json();
         window.forecastData = data;
         renderForecast(data);
+        renderHourlyBreakdown(data);
       } catch (error) {
         const message = document.createElement("p");
         message.className = "forecast-state";
@@ -277,11 +339,10 @@
 
     async function refresh() {
       try {
-        const response = await fetch("/api/wind?limit=48", { cache: "no-store" });
+        const response = await fetch("/api/wind/latest", { cache: "no-store" });
         if (!response.ok) throw new Error(`Server returned ${response.status}`);
         const data = await response.json();
-        const readings = data.observations || [];
-        const latest = readings[0];
+        const latest = (data.observations || [])[0];
         if (latest) {
           window.latestWind = latest;
           updateSkateOutlook(latest);
@@ -295,7 +356,6 @@
           $("status").textContent = "Waiting for the server’s first wind reading";
           setTimeout(refresh, 30 * 1000);
         }
-        drawChart(readings);
       } catch (error) {
         $("status").textContent = "Could not load readings. Is the local server running?";
         console.error(error);

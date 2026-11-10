@@ -21,7 +21,7 @@ python -m wind_skating collect
 python -m wind_skating serve
 ```
 
-Open `http://127.0.0.1:8000` in a browser to see the dashboard. It shows the latest saved wind speed, gust and direction, plus a chart of up to 48 collected readings. The page refreshes every five minutes. Keep the server running while viewing it.
+Open `http://127.0.0.1:8000` in a browser to see the dashboard. It shows the latest observed wind speed, gust, and direction, plus a seven-day skate outlook and an hourly wind breakdown. Choose a forecast day from the selector; it defaults to today. The page refreshes the data periodically. Keep the server running while viewing it.
 
 Use **Which way are you skating?** to select one of 16 compass directions. The dashboard projects the reported wind onto that heading and shows headwind, tailwind, and crosswind components. Wind from the south blows northward, so skating south into it is labeled a headwind; wind from the north is a tailwind for southbound skating. It calls wind under 3 mph light, and an along-route headwind or tailwind component of 3 mph or more challenging or favorable. The selected direction is saved in that browser.
 
