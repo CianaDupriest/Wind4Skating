@@ -218,3 +218,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local collected weather data
+data/*.sqlite3
+data/*.sqlite3-journal

@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f7f5">
+  <title>OKC Wind · Skate Check</title>
+  <style>
+    :root { color-scheme: light; --ink: #142c29; --muted: #60716e; --line: #dce6e1; --green: #176b57; --lime: #d5f36a; --paper: #f4f7f5; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { width: min(100% - 32px, 1000px); margin: 0 auto; padding: 34px 0 48px; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 28px; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .mark { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 14px; background: var(--lime); color: var(--green); font-size: 22px; font-weight: 800; }
+    h1, h2, p { margin: 0; }
+    h1 { font-size: 19px; letter-spacing: -.02em; }
+    .eyebrow { color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .source { color: var(--muted); font-size: 13px; }
+    .hero { display: grid; grid-template-columns: 1.2fr 1fr; gap: 18px; margin-bottom: 18px; }
+    .card { border: 1px solid var(--line); border-radius: 22px; background: white; padding: 24px; box-shadow: 0 8px 28px #163b2b08; }
+    .current { position: relative; overflow: hidden; background: var(--green); color: white; border: 0; }
+    .current:after { position: absolute; width: 210px; height: 210px; right: -68px; bottom: -110px; border: 1px solid #ffffff28; border-radius: 50%; box-shadow: 0 0 0 24px #ffffff0a, 0 0 0 50px #ffffff08; content: ""; }
+    .current .eyebrow, .current .source { color: #c8e1d8; }
+    .reading { display: flex; align-items: baseline; gap: 10px; margin: 16px 0 8px; }
+    .speed { font-size: clamp(64px, 10vw, 98px); font-weight: 750; line-height: .95; letter-spacing: -.08em; }
+    .unit { font-size: 19px; color: #d3e7df; }
+    .gust { margin-top: 20px; font-size: 15px; color: #e0eee9; }
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-content: center; }
+    .stat { border-bottom: 1px solid var(--line); padding: 7px 0 14px; }
+    .stat:last-child, .stat:nth-last-child(2) { border-bottom: 0; }
+    .stat-label { color: var(--muted); font-size: 13px; }
+    .stat-value { margin-top: 4px; font-size: 22px; font-weight: 700; }
+    .skate-card { display: grid; grid-template-columns: 1fr 1.2fr 1fr 1fr; align-items: center; gap: 20px; margin-bottom: 18px; }
+    .direction-field label { display: block; margin-bottom: 7px; font-size: 13px; color: var(--muted); }
+    select { width: 100%; border: 1px solid var(--line); border-radius: 11px; padding: 10px 12px; background: white; color: var(--ink); font: inherit; font-weight: 650; }
+    .verdict { font-size: 23px; font-weight: 750; letter-spacing: -.03em; }
+    .verdict.good { color: #176b57; }
+    .verdict.bad { color: #b23c32; }
+    .verdict.mixed { color: #8a630b; }
+    .verdict-copy { color: var(--muted); font-size: 13px; }
+    .wind-component { font-size: 18px; font-weight: 700; }
+    .skate-note { margin-top: 13px; color: var(--muted); font-size: 12px; }
+    .forecast-card { margin-bottom: 18px; }
+    .forecast-list { display: grid; gap: 9px; margin-top: 16px; }
+    .forecast-row { display: grid; grid-template-columns: 1.1fr 1.5fr 1.2fr; align-items: center; gap: 12px; border-top: 1px solid var(--line); padding: 13px 2px 4px; }
+    .forecast-day { font-weight: 700; }
+    .forecast-wind { color: var(--muted); font-size: 14px; }
+    .rating { justify-self: start; border-radius: 999px; padding: 5px 11px; font-size: 13px; font-weight: 700; }
+    .rating.good { background: #e5f4eb; color: #176b57; }
+    .rating.bad { background: #fbe9e6; color: #a3372f; }
+    .rating.mixed { background: #fff3d7; color: #805a08; }
+    .forecast-state { padding: 20px 0 4px; color: var(--muted); font-size: 14px; }
+    .forecast-updated { color: var(--muted); font-size: 12px; }
+    .chart-card { padding: 22px 24px 18px; }
+    .chart-head { display: flex; align-items: start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    h2 { font-size: 18px; letter-spacing: -.02em; }
+    .chart-wrap { width: 100%; overflow: hidden; }
+    svg { display: block; width: 100%; height: auto; overflow: visible; }
+    .gridline { stroke: #e8eeeb; stroke-width: 1; }
+    .axis-label { fill: #82918d; font: 12px system-ui, sans-serif; }
+    .wind-line { fill: none; stroke: var(--green); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .wind-dot { fill: white; stroke: var(--green); stroke-width: 2; }
+    .empty { display: grid; min-height: 235px; place-items: center; padding: 24px; color: var(--muted); text-align: center; }
+    .empty strong { display: block; margin-bottom: 5px; color: var(--ink); }
+    footer { display: flex; justify-content: space-between; gap: 12px; margin-top: 17px; color: var(--muted); font-size: 12px; }
+    .refresh { white-space: nowrap; }
+    @media (max-width: 760px) { .skate-card { grid-template-columns: 1fr 1fr; gap: 14px; } }
+    @media (max-width: 650px) { main { width: min(100% - 22px, 1000px); padding-top: 22px; } header { align-items: flex-start; } .source.header-source { max-width: 135px; text-align: right; } .hero { grid-template-columns: 1fr; gap: 12px; } .card { border-radius: 18px; padding: 20px; } .stats { grid-template-columns: 1fr 1fr; } footer { flex-direction: column; } }
+    @media (max-width: 520px) { .forecast-row { grid-template-columns: 1fr 1.2fr; } .rating { grid-column: 1 / -1; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="brand"><div class="mark" aria-hidden="true">↗</div><div><p class="eyebrow">Skate check · Oklahoma</p><h1>Oklahoma City Wind</h1></div></div>
+      <p class="source header-source">Observed at Will Rogers World Airport</p>
+    </header>
+
+    <section class="hero" aria-label="Current observed wind">
+      <article class="card current">
+        <p class="eyebrow">Latest observation</p>
+        <div class="reading"><span class="speed" id="speed">—</span><span class="unit">mph</span></div>
+        <p class="gust" id="gust">Gust —</p>
+        <p class="source" id="observed">Waiting for the first saved observation</p>
+      </article>
+      <article class="card stats" aria-label="Wind details">
+        <div class="stat"><p class="stat-label">Direction</p><p class="stat-value" id="direction">—</p></div>
+        <div class="stat"><p class="stat-label">Compass</p><p class="stat-value" id="compass">—</p></div>
+        <div class="stat"><p class="stat-label">Station</p><p class="stat-value" style="font-size:17px">KOKC</p></div>
+        <div class="stat"><p class="stat-label">Data type</p><p class="stat-value" style="font-size:17px">Observed</p></div>
+      </article>
+    </section>
+
+    <section class="card skate-card" aria-label="Wind for your skating direction">
+      <div class="direction-field">
+        <label for="skate-direction">Which way are you skating?</label>
+        <select id="skate-direction">
+          <option value="0">North</option><option value="22.5">North-northeast</option><option value="45">Northeast</option><option value="67.5">East-northeast</option>
+          <option value="90">East</option><option value="112.5">East-southeast</option><option value="135">Southeast</option><option value="157.5">South-southeast</option>
+          <option value="180" selected>South</option><option value="202.5">South-southwest</option><option value="225">Southwest</option><option value="247.5">West-southwest</option>
+          <option value="270">West</option><option value="292.5">West-northwest</option><option value="315">Northwest</option><option value="337.5">North-northwest</option>
+        </select>
+      </div>
+      <div aria-live="polite"><p class="eyebrow">Wind outlook</p><p class="verdict mixed" id="verdict">Waiting for reading</p><p class="verdict-copy" id="verdict-copy">Choose your direction to check the wind.</p></div>
+      <div><p class="stat-label">Along your route</p><p class="wind-component" id="along-route">—</p></div>
+      <div><p class="stat-label">Crosswind</p><p class="wind-component" id="crosswind">—</p></div>
+      <p class="skate-note" style="grid-column: 1 / -1">Wind direction is reported as where it comes from. A tailwind blows toward the direction you are skating; a headwind blows against it. This is a wind check, not a full weather or skate-surface safety forecast.</p>
+    </section>
+
+    <section class="card forecast-card" aria-labelledby="forecast-heading">
+      <div class="chart-head"><div><p class="eyebrow">Hourly forecast · next 7 days</p><h2 id="forecast-heading">Skate wind outlook</h2></div><p class="forecast-updated" id="forecast-updated"></p></div>
+      <p class="source">Daily wind rating uses the daytime forecast and your selected skating direction.</p>
+      <div id="forecast-list" class="forecast-list"><p class="forecast-state">Loading Oklahoma City forecast…</p></div>
+    </section>
+
+    <section class="card chart-card" aria-labelledby="history-heading">
+      <div class="chart-head"><div><p class="eyebrow">Collected readings</p><h2 id="history-heading">Wind speed history</h2></div><p class="source">mph · newest 48 readings</p></div>
+      <div class="chart-wrap" id="chart" role="img" aria-label="Chart of observed wind speeds"></div>
+    </section>
+    <footer><span>Source: National Weather Service · KOKC</span><span class="refresh" id="status">Loading saved readings…</span></footer>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const compassPoints = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+    const compass = (degrees) => degrees == null ? "—" : compassPoints[Math.round(degrees / 45) % 8];
+    const time = (stamp) => stamp ? new Date(stamp).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "Time unavailable";
+
+    const skateDirection = $("skate-direction");
+    skateDirection.value = localStorage.getItem("skate-direction-degrees") || "180";
+    skateDirection.addEventListener("change", () => {
+      localStorage.setItem("skate-direction-degrees", skateDirection.value);
+      if (window.latestWind) updateSkateOutlook(window.latestWind);
+      if (window.forecastData) renderForecast(window.forecastData);
+    });
+
+    function updateSkateOutlook(observation) {
+      const speed = observation.wind_speed_mph;
+      const windFrom = observation.wind_direction_deg;
+      if (speed == null || windFrom == null) {
+        $("verdict").textContent = "Wind data unavailable";
+        $("verdict-copy").textContent = "The latest station report is missing speed or direction.";
+        $("along-route").textContent = "—";
+        $("crosswind").textContent = "—";
+        return;
+      }
+      const heading = Number(skateDirection.value);
+      const windTo = (windFrom + 180) % 360;
+      const delta = ((windTo - heading + 540) % 360) - 180;
+      const along = speed * Math.cos(delta * Math.PI / 180);
+      const cross = Math.abs(speed * Math.sin(delta * Math.PI / 180));
+      const headwind = -along;
+      const alongLabel = Math.abs(along) < 0.5 ? "Little along-route wind" : `${along > 0 ? "Tailwind" : "Headwind"} ${Math.abs(along).toFixed(1)} mph`;
+      $("along-route").textContent = alongLabel;
+      $("crosswind").textContent = `${cross.toFixed(1)} mph`;
+
+      const verdict = $("verdict");
+      const copy = $("verdict-copy");
+      verdict.className = "verdict";
+      if (speed < 3) {
+        verdict.textContent = "Light wind";
+        verdict.classList.add("good");
+        copy.textContent = "Wind is unlikely to make much difference.";
+      } else if (headwind >= 3) {
+        verdict.textContent = "Headwind";
+        verdict.classList.add("bad");
+        copy.textContent = "Challenging: the wind is pushing against your direction.";
+      } else if (headwind <= -3) {
+        verdict.textContent = "Tailwind";
+        verdict.classList.add("good");
+        copy.textContent = "Favorable: the wind is pushing with your direction.";
+      } else {
+        verdict.textContent = "Mostly crosswind";
+        verdict.classList.add("mixed");
+        copy.textContent = "Mixed: most of the wind is across your direction.";
+      }
+    }
+
+    function drawChart(observations) {
+      const valid = [...observations].filter((x) => x.wind_speed_mph != null).reverse();
+      if (!valid.length) {
+        $("chart").innerHTML = '<div class="empty"><div><strong>No readings saved yet</strong>Run <code>python -m wind_skating collect</code> to add the first point.</div></div>';
+        return;
+      }
+      const width = 800, height = 235, left = 48, right = 18, top = 12, bottom = 34;
+      const plotW = width - left - right, plotH = height - top - bottom;
+      const ceiling = Math.max(10, Math.ceil(Math.max(...valid.map((x) => x.wind_speed_mph)) / 5) * 5);
+      const points = valid.map((x, i) => ({ x: left + (valid.length === 1 ? plotW / 2 : i * plotW / (valid.length - 1)), y: top + plotH - x.wind_speed_mph / ceiling * plotH }));
+      const lines = Array.from({ length: 4 }, (_, i) => {
+        const y = top + i * plotH / 3, value = Math.round(ceiling * (1 - i / 3));
+        return `<line class="gridline" x1="${left}" y1="${y}" x2="${width-right}" y2="${y}"/><text class="axis-label" x="${left-10}" y="${y+4}" text-anchor="end">${value}</text>`;
+      }).join("");
+      const polyline = points.map((p) => `${p.x},${p.y}`).join(" ");
+      const dots = points.map((p) => `<circle class="wind-dot" cx="${p.x}" cy="${p.y}" r="3.4"/>`).join("");
+      const first = new Date(valid[0].observed_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      const last = new Date(valid[valid.length-1].observed_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      $("chart").innerHTML = `<svg viewBox="0 0 ${width} ${height}" aria-hidden="true" focusable="false">${lines}<polyline class="wind-line" points="${polyline}"/>${dots}<text class="axis-label" x="${left}" y="${height-7}">${first}</text><text class="axis-label" x="${width-right}" y="${height-7}" text-anchor="end">${last}</text></svg>`;
+    }
+
+    const directionHeadings = { N: 0, NNE: 22.5, NE: 45, ENE: 67.5, E: 90, ESE: 112.5, SE: 135, SSE: 157.5, S: 180, SSW: 202.5, SW: 225, WSW: 247.5, W: 270, WNW: 292.5, NW: 315, NNW: 337.5 };
+    const localDateKey = (stamp) => {
+      const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date(stamp));
+      const get = (type) => parts.find((part) => part.type === type).value;
+      return `${get("year")}-${get("month")}-${get("day")}`;
+    };
+    const safeText = (value) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[char]));
+
+    function renderForecast(data) {
+      const byDate = new Map();
+      for (const period of data.periods || []) {
+        if (!period.start_time) continue;
+        const key = localDateKey(period.start_time);
+        if (!byDate.has(key)) byDate.set(key, []);
+        byDate.get(key).push(period);
+      }
+      const days = [...byDate.entries()].slice(0, 7);
+      if (!days.length) {
+        $("forecast-list").innerHTML = '<p class="forecast-state">The forecast did not include any upcoming periods.</p>';
+        return;
+      }
+      const heading = Number(skateDirection.value);
+      const rows = days.map(([key, periods]) => {
+        const dayPeriods = periods.filter((period) => period.is_daytime && period.wind_speed_min_mph != null && period.wind_speed_max_mph != null);
+        const rated = dayPeriods.filter((period) => directionHeadings[period.wind_direction] != null);
+        const speedValues = dayPeriods.flatMap((period) => [period.wind_speed_min_mph, period.wind_speed_max_mph]);
+        const low = speedValues.length ? Math.min(...speedValues) : null;
+        const high = speedValues.length ? Math.max(...speedValues) : null;
+        const midSpeed = (period) => (period.wind_speed_min_mph + period.wind_speed_max_mph) / 2;
+        const meanSpeed = dayPeriods.length ? dayPeriods.reduce((sum, period) => sum + midSpeed(period), 0) / dayPeriods.length : null;
+        const components = rated.map((period) => {
+          const windTo = (directionHeadings[period.wind_direction] + 180) % 360;
+          const delta = ((windTo - heading + 540) % 360) - 180;
+          return -midSpeed(period) * Math.cos(delta * Math.PI / 180);
+        });
+        const meanHeadwind = components.length ? components.reduce((sum, value) => sum + value, 0) / components.length : null;
+        let label = "No wind rating", ratingClass = "mixed", detail = "Direction or speed is unavailable";
+        if (meanSpeed != null && meanHeadwind != null) {
+          if (meanSpeed < 3) { label = "Light wind"; ratingClass = "good"; detail = "Little wind impact expected"; }
+          else if (meanHeadwind >= 3) { label = "Headwind"; ratingClass = "bad"; detail = `Average headwind component ${meanHeadwind.toFixed(1)} mph`; }
+          else if (meanHeadwind <= -3) { label = "Tailwind"; ratingClass = "good"; detail = `Average tailwind component ${Math.abs(meanHeadwind).toFixed(1)} mph`; }
+          else { label = "Mostly crosswind"; ratingClass = "mixed"; detail = "Mixed wind direction through the day"; }
+        }
+        const date = new Date(`${key}T12:00:00`);
+        const dayLabel = date.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric", timeZone: "America/Chicago" });
+        const speedLabel = low == null ? "Wind speed unavailable" : `${Math.round(low)}–${Math.round(high)} mph forecast`;
+        const directionCounts = {};
+        for (const period of dayPeriods) if (period.wind_direction) directionCounts[period.wind_direction] = (directionCounts[period.wind_direction] || 0) + 1;
+        const commonDirection = Object.entries(directionCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+        const directionLabel = commonDirection ? ` · mostly from ${commonDirection}` : "";
+        return `<article class="forecast-row"><div><p class="forecast-day">${safeText(dayLabel)}</p><p class="forecast-wind">${safeText(detail)}</p></div><p class="forecast-wind">${safeText(speedLabel + directionLabel)}</p><span class="rating ${ratingClass}">${safeText(label)}</span></article>`;
+      }).join("");
+      $("forecast-list").innerHTML = rows;
+      $("forecast-updated").textContent = data.updated ? `NWS update ${time(data.updated)}` : "";
+    }
+
+    async function loadForecast() {
+      try {
+        const response = await fetch("/api/forecast", { cache: "no-store" });
+        if (!response.ok) {
+          const errorBody = await response.json().catch(() => null);
+          if (response.status === 404) {
+            throw new Error("Forecast endpoint not found. Stop and restart the Python server, then reload this page.");
+          }
+          throw new Error(errorBody?.error || `Forecast request failed (HTTP ${response.status}).`);
+        }
+        const data = await response.json();
+        window.forecastData = data;
+        renderForecast(data);
+      } catch (error) {
+        const message = document.createElement("p");
+        message.className = "forecast-state";
+        message.textContent = `Could not load forecast: ${error.message}`;
+        $("forecast-list").replaceChildren(message);
+        console.error(error);
+      }
+    }
+
+    async function refresh() {
+      try {
+        const response = await fetch("/api/wind?limit=48", { cache: "no-store" });
+        if (!response.ok) throw new Error(`Server returned ${response.status}`);
+        const data = await response.json();
+        const readings = data.observations || [];
+        const latest = readings[0];
+        if (latest) {
+          window.latestWind = latest;
+          updateSkateOutlook(latest);
+          $("speed").textContent = latest.wind_speed_mph == null ? "—" : latest.wind_speed_mph.toFixed(1);
+          $("gust").textContent = `Gust ${latest.wind_gust_mph == null ? "—" : `${latest.wind_gust_mph.toFixed(1)} mph`}`;
+          $("direction").textContent = latest.wind_direction_deg == null ? "—" : `${Math.round(latest.wind_direction_deg)}°`;
+          $("compass").textContent = compass(latest.wind_direction_deg);
+          $("observed").textContent = `Observed ${time(latest.observed_at)}`;
+          $("status").textContent = `Updated ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} · refreshes every 5 min`;
+        } else {
+          $("status").textContent = "No saved readings yet";
+        }
+        drawChart(readings);
+      } catch (error) {
+        $("status").textContent = "Could not load readings. Is the local server running?";
+        console.error(error);
+      }
+    }
+    refresh();
+    setInterval(refresh, 5 * 60 * 1000);
+    loadForecast();
+    setInterval(loadForecast, 30 * 60 * 1000);
+  </script>
+</body>
+</html>
