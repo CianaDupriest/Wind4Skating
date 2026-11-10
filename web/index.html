@@ -370,7 +370,14 @@
           const windLabel = directionUnavailable ? (calm ? "Calm" : latest.wind_speed_mph == null ? "Unavailable" : "Variable") : `${Math.round(latest.wind_direction_deg)}°`;
           $("direction").textContent = windLabel;
           $("compass").textContent = directionUnavailable ? windLabel : compass(latest.wind_direction_deg);
-          $("observed").textContent = `Observed ${time(latest.observed_at)}`;
+          const observationAgeMinutes = (Date.now() - new Date(latest.observed_at).getTime()) / 60000;
+          if (latest.using_previous_report) {
+            $("observed").textContent = `Using last usable wind report from ${time(latest.observed_at)}; newer report at ${time(latest.latest_station_report_at)} had incomplete wind data.`;
+          } else if (observationAgeMinutes > 90) {
+            $("observed").textContent = `Last available station report: ${time(latest.observed_at)}.`;
+          } else {
+            $("observed").textContent = `Observed ${time(latest.observed_at)}`;
+          }
           $("status").textContent = `Updated ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} · refreshes every 5 min`;
         } else {
           $("status").textContent = "Waiting for the server’s first wind reading";

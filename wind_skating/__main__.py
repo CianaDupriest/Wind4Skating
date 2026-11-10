@@ -10,7 +10,7 @@ import threading
 import time
 from urllib.parse import urlparse, parse_qs
 
-from .storage import DEFAULT_DB, list_observations, save_observation
+from .storage import DEFAULT_DB, latest_wind_observation, list_observations, save_observation
 from .weather import fetch_latest_observation
 from .forecast import fetch_hourly_forecast
 
@@ -61,8 +61,11 @@ def serve(db_path: Path, host: str, port: int, collection_interval_minutes: int)
             except ValueError:
                 self.send_error(400, "limit must be an integer")
                 return
-            result_limit = 1 if parsed.path.endswith("/latest") else limit
-            items = list_observations(db_path, limit=result_limit)
+            if parsed.path.endswith("/latest"):
+                latest = latest_wind_observation(db_path)
+                items = [latest] if latest else []
+            else:
+                items = list_observations(db_path, limit=limit)
             body = json.dumps(
                 {"location": "Oklahoma City, Oklahoma", "observations": items}
             ).encode()

@@ -27,6 +27,8 @@ Use **Which way are you skating?** to select one of 16 compass directions. The d
 
 The server fetches and saves an observation immediately on startup, then once per hour by default. The dashboard retries shortly when it has no saved readings yet. Set `--collection-interval-minutes` on `serve` to change the interval. The **Skate wind outlook** section shows the next seven Oklahoma City forecast days. It uses NWS hourly forecast periods, groups daytime hours by local date, and rates the average wind component relative to your selected skating direction using the same 3 mph thresholds. Forecasts refresh every 30 minutes and are cached by the server for 30 minutes. This is a wind-only rating; it does not account for rain, temperature, pavement condition, or other skating conditions.
 
+If the newest station report has incomplete wind data, the current-conditions panel uses the latest saved report with a usable wind speed and direction (or a calm reading) and labels the older report time. If there is no earlier usable report, it can still show a speed-only variable-direction report.
+
 The same server provides JSON endpoints at `http://127.0.0.1:8000`:
 
 - `GET /api/wind/latest` — most recently stored observation

@@ -64,3 +64,33 @@ def list_observations(db_path: Path = DEFAULT_DB, limit: int = 24) -> list[dict]
             (limit,),
         ).fetchall()
     return [dict(row) for row in rows]
+
+
+def latest_wind_observation(db_path: Path = DEFAULT_DB) -> dict | None:
+    """Return the newest direction-usable report, falling back to latest speed data."""
+    columns = """station_id, station_name, observed_at, fetched_at,
+                 wind_speed_mph, wind_gust_mph, wind_direction_deg, source"""
+    with connect(db_path) as connection:
+        newest = connection.execute(
+            f"SELECT {columns} FROM observations ORDER BY observed_at DESC LIMIT 1"
+        ).fetchone()
+        complete = connection.execute(
+            f"""SELECT {columns} FROM observations
+                WHERE wind_speed_mph IS NOT NULL
+                  AND (wind_direction_deg IS NOT NULL OR wind_speed_mph < 0.5)
+                ORDER BY observed_at DESC LIMIT 1"""
+        ).fetchone()
+        speed_only = connection.execute(
+            f"""SELECT {columns} FROM observations WHERE wind_speed_mph IS NOT NULL
+                ORDER BY observed_at DESC LIMIT 1"""
+        ).fetchone()
+
+    selected = complete or speed_only or newest
+    if selected is None:
+        return None
+    result = dict(selected)
+    result["latest_station_report_at"] = newest["observed_at"] if newest else None
+    result["using_previous_report"] = bool(
+        newest and selected["observed_at"] != newest["observed_at"]
+    )
+    return result
