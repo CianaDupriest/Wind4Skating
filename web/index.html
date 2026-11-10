@@ -179,7 +179,7 @@
     function drawChart(observations) {
       const valid = [...observations].filter((x) => x.wind_speed_mph != null).reverse();
       if (!valid.length) {
-        $("chart").innerHTML = '<div class="empty"><div><strong>No readings saved yet</strong>Run <code>python -m wind_skating collect</code> to add the first point.</div></div>';
+        $("chart").innerHTML = '<div class="empty"><div><strong>No readings saved yet</strong>The server collects a reading on startup. Check back shortly.</div></div>';
         return;
       }
       const width = 800, height = 235, left = 48, right = 18, top = 12, bottom = 34;
@@ -292,7 +292,8 @@
           $("observed").textContent = `Observed ${time(latest.observed_at)}`;
           $("status").textContent = `Updated ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} · refreshes every 5 min`;
         } else {
-          $("status").textContent = "No saved readings yet";
+          $("status").textContent = "Waiting for the server’s first wind reading";
+          setTimeout(refresh, 30 * 1000);
         }
         drawChart(readings);
       } catch (error) {
