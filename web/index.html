@@ -63,6 +63,8 @@
     .hourly-table td { font-size: 14px; }
     .hourly-table tbody tr:last-child td { border-bottom: 0; }
     .hourly-time { font-weight: 700; white-space: nowrap; }
+    .wind-arrow { display: inline-block; color: var(--green); font-size: 24px; font-weight: 750; line-height: 1; transform: rotate(var(--wind-to, 0deg)); vertical-align: middle; }
+    .wind-arrow.unavailable { color: var(--muted); font-size: 18px; transform: none; }
     .hourly-effect { border-radius: 999px; padding: 4px 9px; font-size: 12px; font-weight: 700; white-space: nowrap; }
     .hourly-effect.good { background: #e5f4eb; color: #176b57; }
     .hourly-effect.bad { background: #fbe9e6; color: #a3372f; }
@@ -124,7 +126,7 @@
         <div><p class="eyebrow">Hourly forecast</p><h2 id="hourly-heading">Wind by hour</h2></div>
         <div><label class="source" for="forecast-day">Select day</label><select class="day-picker" id="forecast-day" disabled><option>Loading...</option></select></div>
       </div>
-      <p class="source">Times are Oklahoma City local time. Wind direction shows where it comes from; skate effect uses your selected route direction.</p>
+      <p class="source">Times are Oklahoma City local time. Arrows show where wind is blowing toward; skate effect uses your selected route direction.</p>
       <div class="table-wrap" id="hourly-breakdown" aria-live="polite"><p class="table-empty">Loading hourly forecast...</p></div>
     </section>
     <footer><span>Source: National Weather Service · KOKC</span><span class="refresh" id="status">Loading saved readings…</span></footer>
@@ -209,6 +211,7 @@
     }
 
     const directionHeadings = { N: 0, NNE: 22.5, NE: 45, ENE: 67.5, E: 90, ESE: 112.5, SE: 135, SSE: 157.5, S: 180, SSW: 202.5, SW: 225, WSW: 247.5, W: 270, WNW: 292.5, NW: 315, NNW: 337.5 };
+    const oppositeDirections = { N: "S", NNE: "SSW", NE: "SW", ENE: "WSW", E: "W", ESE: "WNW", SE: "NW", SSE: "NNW", S: "N", SSW: "NNE", SW: "NE", WSW: "ENE", W: "E", WNW: "ESE", NW: "SE", NNW: "SSE" };
     const localDateKey = (stamp) => {
       const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date(stamp));
       const get = (type) => parts.find((part) => part.type === type).value;
@@ -325,10 +328,12 @@
         });
         const speedLabel = low == null || high == null ? "Unavailable" :
           `${Math.round(low)}${Math.round(low) === Math.round(high) ? "" : `-${Math.round(high)}`} mph`;
-        const directionLabel = period.wind_direction ? `${period.wind_direction} (from)` : "Variable / unavailable";
-        return `<tr><td class="hourly-time">${safeText(timeLabel)}</td><td>${safeText(speedLabel)}</td><td>${safeText(directionLabel)}</td><td><span class="hourly-effect ${effectClass}">${safeText(effect)}</span></td></tr>`;
+        const directionCell = windHeading == null
+          ? '<span class="wind-arrow unavailable" role="img" aria-label="Wind direction unavailable">—</span>'
+          : `<span class="wind-arrow" role="img" style="--wind-to:${(windHeading + 180) % 360}deg" aria-label="Wind blowing toward ${oppositeDirections[period.wind_direction]}; reported from ${period.wind_direction}">↑</span>`;
+        return `<tr><td class="hourly-time">${safeText(timeLabel)}</td><td>${safeText(speedLabel)}</td><td>${directionCell}</td><td><span class="hourly-effect ${effectClass}">${safeText(effect)}</span></td></tr>`;
       }).join("");
-      $("hourly-breakdown").innerHTML = `<table class="hourly-table"><thead><tr><th scope="col">Time</th><th scope="col">Wind speed</th><th scope="col">Wind direction</th><th scope="col">For your route</th></tr></thead><tbody>${rows}</tbody></table>`;
+      $("hourly-breakdown").innerHTML = `<table class="hourly-table"><thead><tr><th scope="col">Time</th><th scope="col">Wind speed</th><th scope="col">Wind flow</th><th scope="col">For your route</th></tr></thead><tbody>${rows}</tbody></table>`;
     }
 
     async function loadForecast() {
