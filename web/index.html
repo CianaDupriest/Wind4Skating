@@ -99,6 +99,7 @@
         <p class="eyebrow">Latest observation</p>
         <div class="reading"><span class="speed" id="speed">—</span><span class="unit">mph</span></div>
         <p class="gust" id="gust">Gust —</p>
+        <p class="gust" id="temperature">Temperature —</p>
         <div class="intensity">
           <div class="intensity-heading"><span>Wind intensity</span><span class="intensity-name" id="intensity-name">Waiting for reading</span></div>
           <div class="intensity-track" id="intensity-meter" role="meter" aria-label="Current wind speed intensity" aria-valuemin="0" aria-valuemax="30" aria-valuenow="0">
@@ -275,6 +276,8 @@
         const dayPeriods = periods.filter((period) => period.is_daytime && period.wind_speed_min_mph != null && period.wind_speed_max_mph != null);
         const rated = dayPeriods.filter((period) => directionHeadings[period.wind_direction] != null);
         const speedValues = dayPeriods.flatMap((period) => [period.wind_speed_min_mph, period.wind_speed_max_mph]);
+        const dayTemperatures = dayPeriods.map((period) => period.temperature_f).filter((value) => value != null);
+        const temperatureLabel = dayTemperatures.length ? ` · ${Math.round(Math.max(...dayTemperatures))}°F daytime high` : "";
         const low = speedValues.length ? Math.min(...speedValues) : null;
         const high = speedValues.length ? Math.max(...speedValues) : null;
         const midSpeed = (period) => (period.wind_speed_min_mph + period.wind_speed_max_mph) / 2;
@@ -299,7 +302,7 @@
         for (const period of dayPeriods) if (period.wind_direction) directionCounts[period.wind_direction] = (directionCounts[period.wind_direction] || 0) + 1;
         const commonDirection = Object.entries(directionCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
         const directionLabel = commonDirection ? ` · mostly from ${commonDirection}` : "";
-        return `<article class="forecast-row"><div><p class="forecast-day">${safeText(dayLabel)}</p><p class="forecast-wind">${safeText(detail)}</p></div><p class="forecast-wind">${safeText(speedLabel + directionLabel)}</p><span class="rating ${ratingClass}">${safeText(label)}</span></article>`;
+        return `<article class="forecast-row"><div><p class="forecast-day">${safeText(dayLabel)}</p><p class="forecast-wind">${safeText(detail + temperatureLabel)}</p></div><p class="forecast-wind">${safeText(speedLabel + directionLabel)}</p><span class="rating ${ratingClass}">${safeText(label)}</span></article>`;
       }).join("");
       $("forecast-list").innerHTML = rows;
       $("forecast-updated").textContent = data.updated ? `NWS update ${time(data.updated)}` : "";
@@ -366,12 +369,13 @@
         });
         const speedLabel = low == null || high == null ? "Unavailable" :
           `${Math.round(low)}${Math.round(low) === Math.round(high) ? "" : `-${Math.round(high)}`} mph`;
+        const temperatureLabel = period.temperature_f == null ? "Unavailable" : `${Math.round(period.temperature_f)}°F`;
         const directionCell = windHeading == null
           ? '<span class="wind-arrow unavailable" role="img" aria-label="Wind direction unavailable">—</span>'
           : `<span class="wind-arrow" role="img" style="--wind-to:${(windHeading + 180) % 360}deg" aria-label="Wind blowing toward ${oppositeDirections[period.wind_direction]}; reported from ${period.wind_direction}">↑</span>`;
-        return `<tr><td class="hourly-time">${safeText(timeLabel)}</td><td>${safeText(speedLabel)}</td><td>${directionCell}</td><td><span class="hourly-effect ${effectClass}">${safeText(effect)}</span></td></tr>`;
+        return `<tr><td class="hourly-time">${safeText(timeLabel)}</td><td>${safeText(speedLabel)}</td><td>${safeText(temperatureLabel)}</td><td>${directionCell}</td><td><span class="hourly-effect ${effectClass}">${safeText(effect)}</span></td></tr>`;
       }).join("");
-      $("hourly-breakdown").innerHTML = `<table class="hourly-table"><thead><tr><th scope="col">Time</th><th scope="col">Wind speed</th><th scope="col">Wind flow</th><th scope="col">For your route</th></tr></thead><tbody>${rows}</tbody></table>`;
+      $("hourly-breakdown").innerHTML = `<table class="hourly-table"><thead><tr><th scope="col">Time</th><th scope="col">Wind speed</th><th scope="col">Temperature</th><th scope="col">Wind flow</th><th scope="col">For your route</th></tr></thead><tbody>${rows}</tbody></table>`;
     }
 
     async function loadForecast() {
@@ -409,6 +413,7 @@
           $("speed").textContent = latest.wind_speed_mph == null ? "—" : latest.wind_speed_mph.toFixed(1);
           updateIntensity(latest.wind_speed_mph);
           $("gust").textContent = `Gust ${latest.wind_gust_mph == null ? "—" : `${latest.wind_gust_mph.toFixed(1)} mph`}`;
+          $("temperature").textContent = `Temperature ${latest.temperature_f == null ? "—" : `${Math.round(latest.temperature_f)}°F`}`;
           const calm = latest.wind_speed_mph != null && latest.wind_speed_mph < 0.5;
           const directionUnavailable = latest.wind_direction_deg == null;
           const windLabel = directionUnavailable ? (calm ? "Calm" : latest.wind_speed_mph == null ? "Unavailable" : "Variable") : `${Math.round(latest.wind_direction_deg)}°`;

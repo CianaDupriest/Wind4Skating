@@ -63,6 +63,10 @@ def fetch_hourly_forecast() -> dict:
     periods = []
     for period in props.get("periods", []):
         low, high = _speed_range(period.get("windSpeed"))
+        temperature = period.get("temperature")
+        temperature_unit = period.get("temperatureUnit")
+        if temperature is not None and temperature_unit == "C":
+            temperature = temperature * 9 / 5 + 32
         periods.append(
             {
                 "start_time": period.get("startTime"),
@@ -70,6 +74,7 @@ def fetch_hourly_forecast() -> dict:
                 "wind_speed_min_mph": low,
                 "wind_speed_max_mph": high,
                 "wind_direction": period.get("windDirection"),
+                "temperature_f": temperature if temperature_unit in ("F", "C") else None,
                 "short_forecast": period.get("shortForecast"),
             }
         )

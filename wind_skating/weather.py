@@ -18,7 +18,7 @@ USER_AGENT = "Wind4Skating/1.0 (personal weather project)"
 
 
 def _number(measurement: dict | None, *, target: str) -> float | None:
-    """Convert a NWS measurement to mph or degrees, returning None if absent."""
+    """Convert a NWS measurement to mph, degrees, or Fahrenheit."""
     if not measurement or measurement.get("value") is None:
         return None
     value = float(measurement["value"])
@@ -35,6 +35,12 @@ def _number(measurement: dict | None, *, target: str) -> float | None:
         raise ValueError(f"Unsupported wind speed unit: {unit!r}")
     if target == "degrees":
         return value
+    if target == "fahrenheit":
+        if "degC" in unit or "celsius" in unit.lower():
+            return value * 9 / 5 + 32
+        if "degF" in unit or "fahrenheit" in unit.lower():
+            return value
+        raise ValueError(f"Unsupported temperature unit: {unit!r}")
     raise ValueError(f"Unsupported conversion target: {target}")
 
 
@@ -61,6 +67,7 @@ def _normalize(properties: dict, source: str) -> dict:
         "wind_direction_deg": _number(
             properties.get("windDirection"), target="degrees"
         ),
+        "temperature_f": _number(properties.get("temperature"), target="fahrenheit"),
         "raw_json": json.dumps(properties, separators=(",", ":")),
         "source": source,
     }

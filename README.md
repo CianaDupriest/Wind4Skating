@@ -8,7 +8,7 @@ Collects observed wind readings for Oklahoma City and exposes the stored data as
 - **Observation station:** KOKC, Will Rogers World Airport
 - **Source:** National Weather Service station observations API
 - **Storage:** local SQLite database at `data/wind_observations.sqlite3`
-- **Units:** wind speed and gust in mph; direction in degrees
+- **Units:** wind speed and gust in mph; direction in degrees; temperature in °F
 
 These are station observations, not forecasts. The airport reading is a useful city reference, but local conditions at a skate spot can differ. The NWS API retains only seven days of station observations, so the server collects regularly to build your own history. NWS notes station data can be delayed during quality control.
 
@@ -21,7 +21,7 @@ python -m wind_skating collect
 python -m wind_skating serve
 ```
 
-Open `http://127.0.0.1:8000` in a browser to see the dashboard. It shows the latest observed wind speed, gust, and direction, plus a seven-day skate outlook and an hourly wind breakdown. Choose a forecast day from the selector; it defaults to today. The page refreshes the data periodically. Keep the server running while viewing it.
+Open `http://127.0.0.1:8000` in a browser to see the dashboard. Wind remains the main focus: the page shows current wind and skate impact, a seven-day skate outlook, and an hourly wind breakdown. Temperature appears as a supporting current condition, daytime high in the outlook, and hourly value. Choose a forecast day from the selector; it defaults to today. The page refreshes the data periodically. Keep the server running while viewing it.
 
 The current-wind card includes an intensity meter based on sustained wind speed: green below 10 mph, yellow from 10 to under 20 mph, and red at 20 mph or higher. Speeds above 30 mph are shown at the end of the red range.
 
@@ -31,7 +31,7 @@ The server fetches and saves an observation immediately on startup, then once pe
 
 If the newest station report has incomplete wind data, the current-conditions panel uses the latest saved report with a usable wind speed and direction (or a calm reading) and labels the older report time. If there is no earlier usable report, it can still show a speed-only variable-direction report.
 
-The same server provides JSON endpoints at `http://127.0.0.1:8000`:
+The skating rating remains based on wind and does not factor temperature into whether the wind is favorable. Temperature is informational. The same server provides JSON endpoints at `http://127.0.0.1:8000`:
 
 - `GET /api/wind/latest` — most recently stored observation
 - `GET /api/wind?limit=24` — up to 24 newest observations (maximum 500)
@@ -51,6 +51,7 @@ Example response:
       "wind_speed_mph": 8.1,
       "wind_gust_mph": 12.7,
       "wind_direction_deg": 210.0,
+      "temperature_f": 68.0,
       "source": "https://api.weather.gov/stations/KOKC/observations/latest"
     }
   ]
