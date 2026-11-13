@@ -9,7 +9,7 @@ from pathlib import Path
 
 DEFAULT_DB = Path("data/wind_observations.sqlite3")
 
-
+# Connects to the SQLite database.
 def connect(db_path: Path = DEFAULT_DB) -> sqlite3.Connection:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(db_path)
@@ -39,7 +39,7 @@ def connect(db_path: Path = DEFAULT_DB) -> sqlite3.Connection:
     connection.commit()
     return connection
 
-
+# Saves an observation to the database
 def save_observation(observation: dict, db_path: Path = DEFAULT_DB) -> bool:
     """Insert an observation; return False when this timestamp was already saved."""
     with connect(db_path) as connection:
@@ -58,7 +58,7 @@ def save_observation(observation: dict, db_path: Path = DEFAULT_DB) -> bool:
         )
         return cursor.rowcount == 1
 
-
+# Gets a list of observations for a station
 def list_observations(db_path: Path = DEFAULT_DB, limit: int = 24, station_id: str = "KOKC") -> list[dict]:
     with connect(db_path) as connection:
         rows = connection.execute(
@@ -69,7 +69,7 @@ def list_observations(db_path: Path = DEFAULT_DB, limit: int = 24, station_id: s
         ).fetchall()
     return [dict(row) for row in rows]
 
-
+# Gets the latest observation for a station
 def latest_wind_observation(db_path: Path = DEFAULT_DB, station_id: str = "KOKC") -> dict | None:
     """Return the newest direction-usable report, falling back to latest speed data."""
     columns = """station_id, station_name, observed_at, fetched_at,

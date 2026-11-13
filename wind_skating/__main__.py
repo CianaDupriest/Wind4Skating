@@ -17,7 +17,7 @@ from .locations import LOCATIONS
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 
-
+# Collects the latest observation and saves it to the database
 def collect(db_path: Path, location: str = "okc") -> None:
     observation = fetch_latest_observation(location)
     inserted = save_observation(observation, db_path)
@@ -36,7 +36,7 @@ def collect(db_path: Path, location: str = "okc") -> None:
     elif observation.get("fallback_lookup_error"):
         print(f"Could not look up a previous station report: {observation['fallback_lookup_error']}")
 
-
+# collects observations for all locations periodically
 def _collect_periodically(db_path: Path, interval_seconds: int) -> None:
     while True:
         for location in LOCATIONS:
@@ -46,15 +46,18 @@ def _collect_periodically(db_path: Path, interval_seconds: int) -> None:
                 print(f"{LOCATIONS[location]['name']} wind collection failed: {exc}")
         time.sleep(interval_seconds)
 
-
+# Serves the stored observations as JSON over HTTP
 def serve(db_path: Path, host: str, port: int, collection_interval_minutes: int) -> None:
     class Handler(BaseHTTPRequestHandler):
+        # Handles GET requests and API endpoints.
         def do_GET(self) -> None:  # noqa: N802 - stdlib handler API
             parsed = urlparse(self.path)
             location = parse_qs(parsed.query).get("location", ["okc"])[0]
             if location not in LOCATIONS:
                 self.send_error(400, "Unsupported location")
                 return
+
+            # Serves the dashboard HTML file for the root path and handles API endpoints.
             if parsed.path == "/":
                 self._send_file(WEB_DIR / "index.html", "text/html; charset=utf-8")
                 return
@@ -72,11 +75,15 @@ def serve(db_path: Path, host: str, port: int, collection_interval_minutes: int)
                 self.send_error(404, "Use /api/wind or /api/wind/latest")
                 return
             query = parse_qs(parsed.query)
+
+            # Parses the limit parameter.
             try:
                 limit = max(1, min(500, int(query.get("limit", ["24"])[0])))
             except ValueError:
                 self.send_error(400, "limit must be an integer")
                 return
+
+            # Gets the observations from the database and returns them as JSON.
             if parsed.path.endswith("/latest"):
                 latest = latest_wind_observation(db_path, LOCATIONS[location]["station_id"])
                 items = [latest] if latest else []
@@ -87,6 +94,7 @@ def serve(db_path: Path, host: str, port: int, collection_interval_minutes: int)
             ).encode()
             self._send(body, "application/json; charset=utf-8")
 
+        # Sends a file with the specified content type.
         def _send_file(self, path: Path, content_type: str) -> None:
             try:
                 body = path.read_bytes()
@@ -95,6 +103,7 @@ def serve(db_path: Path, host: str, port: int, collection_interval_minutes: int)
                 return
             self._send(body, content_type)
 
+        # Sends a response with the specified body, content type, and status code.
         def _send(self, body: bytes, content_type: str, status: int = 200) -> None:
             self.send_response(status)
             self.send_header("Content-Type", content_type)
@@ -103,9 +112,11 @@ def serve(db_path: Path, host: str, port: int, collection_interval_minutes: int)
             self.end_headers()
             self.wfile.write(body)
 
+        # Overrides the default log_message to print to stdout instead of stderr.
         def log_message(self, format: str, *args: object) -> None:
             print(f"{self.address_string()} - {format % args}")
 
+    # Starts the HTTP server and periodic collection.
     server = ThreadingHTTPServer((host, port), Handler)
     collector = threading.Thread(
         target=_collect_periodically,
@@ -123,7 +134,7 @@ def serve(db_path: Path, host: str, port: int, collection_interval_minutes: int)
     finally:
         server.server_close()
 
-
+# Main entry point for the script
 def main() -> None:
     parser = argparse.ArgumentParser(description="Oklahoma City observed wind collector")
     parser.add_argument("--db", type=Path, default=DEFAULT_DB, help="SQLite database path")

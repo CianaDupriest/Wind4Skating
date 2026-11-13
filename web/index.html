@@ -105,6 +105,7 @@
     .hourly-table td { font-size: 14px; }
     .hourly-table tbody tr:last-child td { border-bottom: 0; }
     .hourly-time { font-weight: 700; white-space: nowrap; }
+    .observed-row td { background: #f2f7f4; }
     .wind-arrow { display: inline-block; color: var(--green); font-size: 24px; font-weight: 750; line-height: 1; transform: rotate(var(--wind-to, 0deg)); vertical-align: middle; }
     .wind-arrow.unavailable { color: var(--muted); font-size: 18px; transform: none; }
     .hourly-effect { border-radius: 999px; padding: 4px 9px; font-size: 12px; font-weight: 700; white-space: nowrap; }
@@ -189,14 +190,15 @@
         <div><p class="eyebrow">Hourly forecast</p><h2 id="hourly-heading">Wind by hour</h2></div>
         <div><label class="source" for="forecast-day">Select day</label><select class="day-picker" id="forecast-day" disabled><option>Loading...</option></select></div>
       </div>
-      <p class="source">Times are Oklahoma City local time. Arrows show where wind is blowing toward; skate effect uses your selected route direction.</p>
+      <p class="source">The latest station observation is listed separately from the hourly forecasts, which can differ. Arrows show where wind is blowing toward; skate effect uses your selected route direction.</p>
       <div class="table-wrap" id="hourly-breakdown" aria-live="polite"><p class="table-empty">Loading hourly forecast...</p></div>
     </section>
     <footer><span>Source: National Weather Service · KOKC</span><span class="refresh" id="status">Loading saved readings…</span></footer>
   </main>
   <script>
     const $ = (id) => document.getElementById(id);
-    const time = (stamp) => stamp ? new Date(stamp).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "Time unavailable";
+    const displayTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const time = (stamp) => stamp ? new Date(stamp).toLocaleString([], { dateStyle: "medium", timeStyle: "short", timeZone: displayTimeZone }) : "Time unavailable";
 
     function updateTemperature(temperature) {
       const meter = $("temperature-meter");
@@ -317,27 +319,11 @@
     const directionHeadings = { N: 0, NNE: 22.5, NE: 45, ENE: 67.5, E: 90, ESE: 112.5, SE: 135, SSE: 157.5, S: 180, SSW: 202.5, SW: 225, WSW: 247.5, W: 270, WNW: 292.5, NW: 315, NNW: 337.5 };
     const oppositeDirections = { N: "S", NNE: "SSW", NE: "SW", ENE: "WSW", E: "W", ESE: "WNW", SE: "NW", SSE: "NNW", S: "N", SSW: "NNE", SW: "NE", WSW: "ENE", W: "E", WNW: "ESE", NW: "SE", NNW: "SSE" };
     const localDateKey = (stamp) => {
-      const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date(stamp));
+      const parts = new Intl.DateTimeFormat("en-US", { timeZone: displayTimeZone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date(stamp));
       const get = (type) => parts.find((part) => part.type === type).value;
       return `${get("year")}-${get("month")}-${get("day")}`;
     };
     const safeText = (value) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[char]));
-
-    function withObservedCurrentWind(period) {
-      const observation = window.latestWind;
-      if (!observation || observation.wind_speed_mph == null || !period.start_time || !period.end_time) return period;
-      const now = Date.now();
-      if (new Date(period.start_time).getTime() > now || new Date(period.end_time).getTime() <= now) return period;
-      const observedDirection = observation.wind_direction_deg == null
-        ? period.wind_direction
-        : Object.keys(directionHeadings)[Math.round(observation.wind_direction_deg / 22.5) % 16];
-      return {
-        ...period,
-        wind_speed_min_mph: observation.wind_speed_mph,
-        wind_speed_max_mph: observation.wind_speed_mph,
-        wind_direction: observedDirection,
-      };
-    }
 
     function renderForecast(data) {
       const byDate = new Map();
@@ -354,7 +340,7 @@
       }
       const heading = Number(skateDirection.value);
       const rows = days.map(([key, periods]) => {
-        const dayPeriods = periods.map(withObservedCurrentWind).filter((period) => period.is_daytime && period.wind_speed_min_mph != null && period.wind_speed_max_mph != null);
+        const dayPeriods = periods.filter((period) => period.is_daytime && period.wind_speed_min_mph != null && period.wind_speed_max_mph != null);
         const rated = dayPeriods.filter((period) => directionHeadings[period.wind_direction] != null);
         const speedValues = dayPeriods.flatMap((period) => [period.wind_speed_min_mph, period.wind_speed_max_mph]);
         const low = speedValues.length ? Math.min(...speedValues) : null;
@@ -375,7 +361,7 @@
           else { label = "Mostly crosswind"; ratingClass = "mixed"; detail = "Mixed wind direction through the day"; }
         }
         const date = new Date(`${key}T12:00:00`);
-        const dayLabel = date.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric", timeZone: "America/Chicago" });
+        const dayLabel = date.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric", timeZone: displayTimeZone });
         const speedLabel = low == null ? "Wind speed unavailable" : `${Math.round(low)}–${Math.round(high)} mph forecast`;
         const directionCounts = {};
         for (const period of dayPeriods) if (period.wind_direction) directionCounts[period.wind_direction] = (directionCounts[period.wind_direction] || 0) + 1;
@@ -389,7 +375,7 @@
 
     function formatForecastDay(key, options = { weekday: "long", month: "short", day: "numeric" }) {
       const date = new Date(`${key}T18:00:00Z`);
-      return date.toLocaleDateString([], { ...options, timeZone: "America/Chicago" });
+      return date.toLocaleDateString([], { ...options, timeZone: displayTimeZone });
     }
 
     function renderHourlyBreakdown(data) {
@@ -428,8 +414,33 @@
       }
 
       const heading = Number(skateDirection.value);
+      const observation = window.latestWind;
+      const observationRow = observation?.observed_at && localDateKey(observation.observed_at) === picker.value
+        ? (() => {
+          const speed = observation.wind_speed_mph;
+          const windFrom = observation.wind_direction_deg;
+          const timeLabel = new Date(observation.observed_at).toLocaleTimeString([], {
+            hour: "numeric", minute: "2-digit", timeZone: displayTimeZone,
+          });
+          const speedLabel = speed == null ? "Unavailable" : `${speed.toFixed(1)} mph`;
+          const directionCell = windFrom == null
+            ? '<span class="wind-arrow unavailable" role="img" aria-label="Wind direction unavailable">—</span>'
+            : `<span class="wind-arrow" role="img" style="--wind-to:${(windFrom + 180) % 360}deg" aria-label="Wind reported from ${Math.round(windFrom)} degrees">↑</span>`;
+          let effect = "Unavailable", effectClass = "mixed";
+          if (speed != null && speed < 3) { effect = "Light wind"; effectClass = "good"; }
+          else if (speed != null && windFrom != null) {
+            const windTo = (windFrom + 180) % 360;
+            const delta = ((windTo - heading + 540) % 360) - 180;
+            const headwind = -speed * Math.cos(delta * Math.PI / 180);
+            if (headwind >= 3) { effect = `Headwind ${headwind.toFixed(1)} mph`; effectClass = "bad"; }
+            else if (headwind <= -3) { effect = `Tailwind ${Math.abs(headwind).toFixed(1)} mph`; effectClass = "good"; }
+            else { effect = "Mostly crosswind"; effectClass = "mixed"; }
+          }
+          return `<tr class="observed-row"><td class="hourly-time">Observed · ${safeText(timeLabel)}</td><td>${safeText(speedLabel)}</td><td>${directionCell}</td><td><span class="hourly-effect ${effectClass}">${safeText(effect)}</span></td></tr>`;
+        })()
+        : "";
       const rows = selected.map((forecastPeriod) => {
-        const period = withObservedCurrentWind(forecastPeriod);
+        const period = forecastPeriod;
         const low = period.wind_speed_min_mph;
         const high = period.wind_speed_max_mph;
         const speed = low == null || high == null ? null : (low + high) / 2;
@@ -445,16 +456,16 @@
           else { effect = "Mostly crosswind"; effectClass = "mixed"; }
         }
         const timeLabel = new Date(period.start_time).toLocaleTimeString([], {
-          hour: "numeric", minute: "2-digit", timeZone: "America/Chicago",
+          hour: "numeric", minute: "2-digit", timeZone: displayTimeZone,
         });
         const speedLabel = low == null || high == null ? "Unavailable" :
           `${Math.round(low)}${Math.round(low) === Math.round(high) ? "" : `-${Math.round(high)}`} mph`;
         const directionCell = windHeading == null
           ? '<span class="wind-arrow unavailable" role="img" aria-label="Wind direction unavailable">—</span>'
           : `<span class="wind-arrow" role="img" style="--wind-to:${(windHeading + 180) % 360}deg" aria-label="Wind blowing toward ${oppositeDirections[period.wind_direction]}; reported from ${period.wind_direction}">↑</span>`;
-        return `<tr><td class="hourly-time">${safeText(timeLabel)}</td><td>${safeText(speedLabel)}</td><td>${directionCell}</td><td><span class="hourly-effect ${effectClass}">${safeText(effect)}</span></td></tr>`;
+        return `<tr><td class="hourly-time">Forecast · ${safeText(timeLabel)}</td><td>${safeText(speedLabel)}</td><td>${directionCell}</td><td><span class="hourly-effect ${effectClass}">${safeText(effect)}</span></td></tr>`;
       }).join("");
-      $("hourly-breakdown").innerHTML = `<table class="hourly-table"><thead><tr><th scope="col">Time</th><th scope="col">Wind speed</th><th scope="col">Wind flow</th><th scope="col">For your route</th></tr></thead><tbody>${rows}</tbody></table>`;
+      $("hourly-breakdown").innerHTML = `<table class="hourly-table"><thead><tr><th scope="col">Time and source</th><th scope="col">Wind speed</th><th scope="col">Wind flow</th><th scope="col">For your route</th></tr></thead><tbody>${observationRow}${rows}</tbody></table>`;
     }
 
     async function loadForecast() {

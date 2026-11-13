@@ -14,7 +14,7 @@ USER_AGENT = "Wind4Skating/1.0 (personal weather project)"
 CACHE_TTL = timedelta(minutes=30)
 _cache: dict[str, tuple[datetime, dict]] = {}
 
-
+# Gets the JSON data from a URL.
 def _get_json(url: str) -> dict:
     request = Request(
         url,
@@ -23,7 +23,7 @@ def _get_json(url: str) -> dict:
     with urlopen(request, timeout=20) as response:
         return json.load(response)
 
-
+# Converts a wind speed range string into a tuple of floats in mph.
 def _speed_range(text: str | None) -> tuple[float | None, float | None]:
     if not text:
         return None, None
@@ -40,7 +40,7 @@ def _speed_range(text: str | None) -> tuple[float | None, float | None]:
         return numbers[0], numbers[0]
     return min(numbers[0], numbers[1]), max(numbers[0], numbers[1])
 
-
+# Fetches hourly forecast data from the NWS API for a location.
 def fetch_hourly_forecast(location: str = "okc") -> dict:
     """Return cached hourly NWS forecast periods; refresh at most every 30 min."""
     if location not in LOCATIONS:
@@ -50,6 +50,7 @@ def fetch_hourly_forecast(location: str = "okc") -> dict:
     if cached and now - cached[0] < CACHE_TTL:
         return cached[1]
 
+    # Gets hourly forecast data from the NWS API for the location.
     place = LOCATIONS[location]
     point_url = f"https://api.weather.gov/points/{place['latitude']},{place['longitude']}"
     point = _get_json(point_url)
@@ -60,6 +61,7 @@ def fetch_hourly_forecast(location: str = "okc") -> dict:
     if parsed.scheme != "https" or parsed.hostname != "api.weather.gov":
         raise ValueError("NWS returned an unexpected hourly forecast URL")
 
+    # Fetches the forecast data and normalizes it into project format.
     forecast = _get_json(forecast_url)
     props = forecast.get("properties", {})
     periods = []

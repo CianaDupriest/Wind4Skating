@@ -44,7 +44,7 @@ def _number(measurement: dict | None, *, target: str) -> float | None:
         raise ValueError(f"Unsupported temperature unit: {unit!r}")
     raise ValueError(f"Unsupported conversion target: {target}")
 
-
+# The NWS API returns JSON, this returns it as a Python dict.
 def _get_json(url: str) -> dict:
     request = Request(
         url,
@@ -53,7 +53,9 @@ def _get_json(url: str) -> dict:
     with urlopen(request, timeout=20) as response:
         return json.load(response)
 
-
+# The NWS API returns a JSON object with a "properties" dict, 
+# which contains the actual observation data.
+# This function normalizes that data into the dashboard format.
 def _normalize(properties: dict, source: str, station_id: str) -> dict:
     timestamp = properties.get("timestamp")
     if not timestamp:
@@ -73,17 +75,19 @@ def _normalize(properties: dict, source: str, station_id: str) -> dict:
         "source": source,
     }
 
-
+# Checks if observation has usable wind data.
 def _has_usable_wind(observation: dict) -> bool:
     speed = observation["wind_speed_mph"]
     return speed is not None and (
         observation["wind_direction_deg"] is not None or speed < 0.5
     )
 
-
+# Fetches the latest observation from the NWS API for a location.
 def fetch_latest_observation(location: str = "okc") -> dict:
     if location not in LOCATIONS:
         raise ValueError(f"Unsupported location: {location}")
+    
+    # Gets the station ID for the location and construct the URLs for the observations.
     station_id = LOCATIONS[location]["station_id"]
     observation_url = f"https://api.weather.gov/stations/{station_id}/observations/latest"
     recent_observations_url = f"https://api.weather.gov/stations/{station_id}/observations?limit=20"
@@ -98,7 +102,7 @@ def fetch_latest_observation(location: str = "okc") -> dict:
         return latest
 
     # A fresh deployment may not yet have a usable reading in its own database.
-    # Check recent station reports so it can save the most recent usable one now.
+    # Checks the recent station reports so it can use the most recent usable one now as a fallback.
     try:
         recent_payload = _get_json(recent_observations_url)
         features = recent_payload.get("features", [])
@@ -106,6 +110,7 @@ def fetch_latest_observation(location: str = "okc") -> dict:
             key=lambda item: item.get("properties", {}).get("timestamp", ""),
             reverse=True,
         )
+        # Look for the most recent usable observation that is not the same as the latest one.
         for feature in features:
             previous_properties = feature.get("properties", {})
             if previous_properties.get("timestamp") == latest["observed_at"]:
