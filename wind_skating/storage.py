@@ -24,11 +24,15 @@ def connect(db_path: Path = DEFAULT_DB) -> sqlite3.Connection:
             wind_speed_mph REAL,
             wind_gust_mph REAL,
             wind_direction_deg REAL,
+            temperature_f REAL,
             source TEXT NOT NULL,
             raw_json TEXT NOT NULL,
             UNIQUE(station_id, observed_at)
         )"""
     )
+    columns = {row[1] for row in connection.execute("PRAGMA table_info(observations)")}
+    if "temperature_f" not in columns:
+        connection.execute("ALTER TABLE observations ADD COLUMN temperature_f REAL")
     connection.execute(
         "CREATE INDEX IF NOT EXISTS idx_observations_time ON observations(observed_at)"
     )
@@ -42,47 +46,47 @@ def save_observation(observation: dict, db_path: Path = DEFAULT_DB) -> bool:
         cursor = connection.execute(
             """INSERT OR IGNORE INTO observations
             (station_id, station_name, observed_at, fetched_at, wind_speed_mph,
-             wind_gust_mph, wind_direction_deg, source, raw_json)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+             wind_gust_mph, wind_direction_deg, temperature_f, source, raw_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 observation["station_id"], observation["station_name"],
                 observation["observed_at"], observation["fetched_at"],
                 observation["wind_speed_mph"], observation["wind_gust_mph"],
-                observation["wind_direction_deg"], observation["source"],
-                observation["raw_json"],
+                observation["wind_direction_deg"], observation.get("temperature_f"),
+                observation["source"], observation["raw_json"],
             ),
         )
         return cursor.rowcount == 1
 
 
-def list_observations(db_path: Path = DEFAULT_DB, limit: int = 24) -> list[dict]:
+def list_observations(db_path: Path = DEFAULT_DB, limit: int = 24, station_id: str = "KOKC") -> list[dict]:
     with connect(db_path) as connection:
         rows = connection.execute(
             """SELECT station_id, station_name, observed_at, fetched_at,
-                      wind_speed_mph, wind_gust_mph, wind_direction_deg, source
-               FROM observations ORDER BY observed_at DESC LIMIT ?""",
-            (limit,),
+                      wind_speed_mph, wind_gust_mph, wind_direction_deg, temperature_f, source
+               FROM observations WHERE station_id = ? ORDER BY observed_at DESC LIMIT ?""",
+            (station_id, limit),
         ).fetchall()
     return [dict(row) for row in rows]
 
 
-def latest_wind_observation(db_path: Path = DEFAULT_DB) -> dict | None:
+def latest_wind_observation(db_path: Path = DEFAULT_DB, station_id: str = "KOKC") -> dict | None:
     """Return the newest direction-usable report, falling back to latest speed data."""
     columns = """station_id, station_name, observed_at, fetched_at,
-                 wind_speed_mph, wind_gust_mph, wind_direction_deg, source"""
+                 wind_speed_mph, wind_gust_mph, wind_direction_deg, temperature_f, source"""
     with connect(db_path) as connection:
         newest = connection.execute(
-            f"SELECT {columns} FROM observations ORDER BY observed_at DESC LIMIT 1"
+            f"SELECT {columns} FROM observations WHERE station_id = ? ORDER BY observed_at DESC LIMIT 1", (station_id,)
         ).fetchone()
         complete = connection.execute(
             f"""SELECT {columns} FROM observations
-                WHERE wind_speed_mph IS NOT NULL
+                WHERE station_id = ? AND wind_speed_mph IS NOT NULL
                   AND (wind_direction_deg IS NOT NULL OR wind_speed_mph < 0.5)
-                ORDER BY observed_at DESC LIMIT 1"""
+                ORDER BY observed_at DESC LIMIT 1""", (station_id,)
         ).fetchone()
         speed_only = connection.execute(
-            f"""SELECT {columns} FROM observations WHERE wind_speed_mph IS NOT NULL
-                ORDER BY observed_at DESC LIMIT 1"""
+            f"""SELECT {columns} FROM observations WHERE station_id = ? AND wind_speed_mph IS NOT NULL
+                ORDER BY observed_at DESC LIMIT 1""", (station_id,)
         ).fetchone()
 
     selected = complete or speed_only or newest
