@@ -5,16 +5,14 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 import json
 import re
+from .locations import LOCATIONS
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 
-OKC_LATITUDE = 35.4676
-OKC_LONGITUDE = -97.5164
-POINTS_URL = f"https://api.weather.gov/points/{OKC_LATITUDE},{OKC_LONGITUDE}"
 USER_AGENT = "Wind4Skating/1.0 (personal weather project)"
 CACHE_TTL = timedelta(minutes=30)
-_cache: tuple[datetime, dict] | None = None
+_cache: dict[str, tuple[datetime, dict]] = {}
 
 
 def _get_json(url: str) -> dict:
@@ -43,14 +41,18 @@ def _speed_range(text: str | None) -> tuple[float | None, float | None]:
     return min(numbers[0], numbers[1]), max(numbers[0], numbers[1])
 
 
-def fetch_hourly_forecast() -> dict:
+def fetch_hourly_forecast(location: str = "okc") -> dict:
     """Return cached hourly NWS forecast periods; refresh at most every 30 min."""
-    global _cache
+    if location not in LOCATIONS:
+        raise ValueError(f"Unsupported location: {location}")
     now = datetime.now(timezone.utc)
-    if _cache and now - _cache[0] < CACHE_TTL:
-        return _cache[1]
+    cached = _cache.get(location)
+    if cached and now - cached[0] < CACHE_TTL:
+        return cached[1]
 
-    point = _get_json(POINTS_URL)
+    place = LOCATIONS[location]
+    point_url = f"https://api.weather.gov/points/{place['latitude']},{place['longitude']}"
+    point = _get_json(point_url)
     forecast_url = point.get("properties", {}).get("forecastHourly")
     if not forecast_url:
         raise ValueError("NWS did not provide an hourly forecast URL for Oklahoma City")
@@ -64,26 +66,29 @@ def fetch_hourly_forecast() -> dict:
     for period in props.get("periods", []):
         low, high = _speed_range(period.get("windSpeed"))
         temperature = period.get("temperature")
-        temperature_unit = period.get("temperatureUnit")
-        if temperature is not None and temperature_unit == "C":
-            temperature = temperature * 9 / 5 + 32
+        temperature_f = None
+        if temperature is not None:
+            temperature_f = float(temperature)
+            if period.get("temperatureUnit") == "C":
+                temperature_f = temperature_f * 9 / 5 + 32
         periods.append(
             {
                 "start_time": period.get("startTime"),
+                "end_time": period.get("endTime"),
                 "is_daytime": period.get("isDaytime"),
                 "wind_speed_min_mph": low,
                 "wind_speed_max_mph": high,
+                "temperature_f": temperature_f,
                 "wind_direction": period.get("windDirection"),
-                "temperature_f": temperature if temperature_unit in ("F", "C") else None,
                 "short_forecast": period.get("shortForecast"),
             }
         )
     result = {
-        "location": "Oklahoma City, Oklahoma",
+        "location": place["name"],
         "timezone": "America/Chicago",
         "updated": props.get("updateTime"),
         "periods": periods,
         "source": forecast_url,
     }
-    _cache = (now, result)
+    _cache[location] = (now, result)
     return result

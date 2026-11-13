@@ -34,6 +34,27 @@
     .intensity-segment:first-child { background: #64c88a; border-radius: 999px 0 0 999px; }
     .intensity-segment:nth-child(2) { background: #f1ca4e; }
     .intensity-segment:nth-child(3) { background: #e66f61; border: 0; border-radius: 0 999px 999px 0; }
+    .wind-track .intensity-segment { flex: none; }
+    .wind-track .intensity-segment:first-child { width: 25%; }
+    .wind-track .intensity-segment:nth-child(2) { width: 25%; }
+    .wind-track .intensity-segment:nth-child(3) { width: 50%; }
+    .wind-scale { position: relative; display: block; height: 13px; margin-top: 5px; color: #c8e1d8; font-size: 10px; }
+    .wind-scale span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+    .wind-scale span:first-child { left: 0; transform: none; }
+    .wind-scale span:nth-child(2) { left: 25%; }
+    .wind-scale span:nth-child(3) { left: 50%; }
+    .wind-scale span:last-child { left: 100%; }
+    .temperature-track .intensity-segment { flex: none; }
+    .temperature-track .intensity-segment:nth-child(1) { width: 36.36%; }
+    .temperature-track .intensity-segment:nth-child(2) { width: 18.18%; }
+    .temperature-track .intensity-segment:nth-child(3) { width: 20%; }
+    .temperature-track .intensity-segment:nth-child(4) { width: 11.82%; }
+    .temperature-track .intensity-segment:nth-child(5) { width: 13.64%; }
+    .temperature-track .intensity-segment:nth-child(1), .temperature-track .intensity-segment:nth-child(5) { background: #e66f61; }
+    .temperature-track .intensity-segment:nth-child(2), .temperature-track .intensity-segment:nth-child(4) { background: #f1ca4e; }
+    .temperature-track .intensity-segment:nth-child(3) { background: #64c88a; border-right: 2px solid #176b57; border-radius: 0; }
+    .temperature-track .intensity-segment:first-child { border-radius: 999px 0 0 999px; }
+    .temperature-track .intensity-segment:nth-child(5) { border: 0; border-radius: 0 999px 999px 0; }
     .intensity-marker { position: absolute; top: -4px; bottom: -4px; left: 0; width: 4px; border: 1px solid #142c29; border-radius: 3px; background: white; box-shadow: 0 1px 4px #0006; transform: translateX(-50%); transition: left .3s ease; }
     .intensity-scale { display: flex; justify-content: space-between; margin-top: 5px; color: #c8e1d8; font-size: 10px; }
     .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-content: center; }
@@ -50,6 +71,17 @@
     .verdict.mixed { color: #8a630b; }
     .verdict-copy { color: var(--muted); font-size: 13px; }
     .wind-component { font-size: 18px; font-weight: 700; }
+    .temperature-analysis { font-size: 18px; font-weight: 700; }
+    .temperature-analysis.cold, .temperature-analysis.hot { color: #b23c32; }
+    .temperature-analysis.caution { color: #8a630b; }
+    .temperature-analysis.comfortable { color: #176b57; }
+    .temperature-scale { position: relative; display: block; height: 13px; margin-top: 5px; color: #c8e1d8; font-size: 10px; }
+    .temperature-scale span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+    .temperature-scale span:first-child { left: 0; transform: none; }
+    .temperature-scale span:nth-child(2) { left: 54.55%; }
+    .temperature-scale span:nth-child(3) { left: 74.55%; }
+    .temperature-scale span:nth-child(4) { left: 86.36%; }
+    .temperature-scale span:last-child { left: 100%; }
     .skate-note { margin-top: 13px; color: var(--muted); font-size: 12px; }
     .forecast-card { margin-bottom: 18px; }
     .forecast-list { display: grid; gap: 9px; margin-top: 16px; }
@@ -90,36 +122,20 @@
 <body>
   <main>
     <header>
-      <div class="brand"><div class="mark" aria-hidden="true">↗</div><div><p class="eyebrow">Skate check · Oklahoma</p><h1>Wind4Skating</h1></div></div>
-      <p class="source header-source">Observed at Will Rogers World Airport</p>
+      <div class="brand"><div class="mark" aria-hidden="true">↗</div><div><p class="eyebrow">Skate check</p><h1>Wind4Skating</h1></div></div>
+      <p class="source header-source" id="station-context">Weather for Oklahoma City</p>
     </header>
-
-    <section class="hero" aria-label="Current observed wind">
-      <article class="card current">
-        <p class="eyebrow">Latest observation</p>
-        <div class="reading"><span class="speed" id="speed">—</span><span class="unit">mph</span></div>
-        <p class="gust" id="gust">Gust —</p>
-        <p class="gust" id="temperature">Temperature —</p>
-        <div class="intensity">
-          <div class="intensity-heading"><span>Wind intensity</span><span class="intensity-name" id="intensity-name">Waiting for reading</span></div>
-          <div class="intensity-track" id="intensity-meter" role="meter" aria-label="Current wind speed intensity" aria-valuemin="0" aria-valuemax="30" aria-valuenow="0">
-            <span class="intensity-segment" aria-hidden="true"></span><span class="intensity-segment" aria-hidden="true"></span><span class="intensity-segment" aria-hidden="true"></span>
-            <span class="intensity-marker" id="intensity-marker" aria-hidden="true" hidden></span>
-          </div>
-          <div class="intensity-scale" aria-hidden="true"><span>0</span><span>10</span><span>20</span><span>30+ mph</span></div>
-        </div>
-        <p class="source" id="observed">Waiting for the first saved observation</p>
-      </article>
-      <article class="card stats" aria-label="Wind details">
-        <div class="stat"><p class="stat-label">Direction</p><p class="stat-value" id="direction">—</p></div>
-        <div class="stat"><p class="stat-label">Compass</p><p class="stat-value" id="compass">—</p></div>
-        <div class="stat"><p class="stat-label">Station</p><p class="stat-value" style="font-size:17px">KOKC</p></div>
-        <div class="stat"><p class="stat-label">Data type</p><p class="stat-value" style="font-size:17px">Observed</p></div>
-      </article>
-    </section>
 
     <section class="card skate-card" aria-label="Wind for your skating direction">
       <div class="direction-field">
+        <label for="location">Location</label>
+        <select id="location">
+          <option value="okc" selected>Oklahoma City (OKC)</option>
+          <option value="los-angeles">Los Angeles</option>
+          <option value="seattle">Seattle</option>
+          <option value="dallas">Dallas</option>
+          <option value="new-york">New York</option>
+        </select>
         <label for="skate-direction">Which way are you skating?</label>
         <select id="skate-direction">
           <option value="0">North</option><option value="22.5">North-northeast</option><option value="45">Northeast</option><option value="67.5">East-northeast</option>
@@ -129,9 +145,37 @@
         </select>
       </div>
       <div aria-live="polite"><p class="eyebrow">Wind outlook</p><p class="verdict mixed" id="verdict">Waiting for reading</p><p class="verdict-copy" id="verdict-copy">Choose your direction to check the wind.</p></div>
-      <div><p class="stat-label">Along your route</p><p class="wind-component" id="along-route">—</p></div>
-      <div><p class="stat-label">Crosswind</p><p class="wind-component" id="crosswind">—</p></div>
-      <p class="skate-note" style="grid-column: 1 / -1">Wind direction is reported as where it comes from. A tailwind blows toward the direction you are skating; a headwind blows against it. This is a wind check, not a full weather or skate-surface safety forecast.</p>
+      <div style="grid-column:span 2"><p class="stat-label">Current temperature analysis</p><p class="temperature-analysis" id="temperature-analysis">Waiting for temperature</p><p class="source" id="temperature-analysis-copy">Based on the latest station reading.</p></div>
+      <p class="skate-note" style="grid-column: 1 / -1">Choose a location and skating direction to see how the wind may affect your route. Temperature guidance uses the latest station reading; check local conditions before skating.</p>
+    </section>
+
+    <section class="hero" aria-label="Current observed wind">
+      <article class="card current">
+        <p class="eyebrow">Latest observation</p>
+        <div class="reading"><span class="speed" id="speed">—</span><span class="unit">mph</span></div>
+        <div class="intensity">
+          <div class="intensity-heading"><span>Wind intensity</span><span class="intensity-name" id="intensity-name">Waiting for reading</span></div>
+          <div class="intensity-track wind-track" id="intensity-meter" role="meter" aria-label="Current wind speed intensity" aria-valuemin="0" aria-valuemax="20" aria-valuenow="0">
+            <span class="intensity-segment" aria-hidden="true"></span><span class="intensity-segment" aria-hidden="true"></span><span class="intensity-segment" aria-hidden="true"></span>
+            <span class="intensity-marker" id="intensity-marker" aria-hidden="true" hidden></span>
+          </div>
+          <div class="wind-scale" aria-hidden="true"><span>0</span><span>5</span><span>10</span><span>20+ mph</span></div>
+        </div>
+        <p class="source" id="observed">Waiting for the first saved observation</p>
+      </article>
+      <article class="card current" aria-label="Current temperature">
+        <p class="eyebrow">Latest observation</p>
+        <div class="reading"><span class="speed" id="temperature">—</span><span class="unit">°F</span></div>
+        <div class="intensity">
+          <div class="intensity-heading"><span>Temperature comfort</span><span class="intensity-name" id="temperature-category">Waiting for reading</span></div>
+          <div class="intensity-track temperature-track" id="temperature-meter" role="meter" aria-label="Temperature comfort level" aria-valuemin="0" aria-valuemax="110" aria-valuenow="0">
+            <span class="intensity-segment" aria-hidden="true"></span><span class="intensity-segment" aria-hidden="true"></span><span class="intensity-segment" aria-hidden="true"></span><span class="intensity-segment" aria-hidden="true"></span><span class="intensity-segment" aria-hidden="true"></span>
+            <span class="intensity-marker" id="temperature-marker" aria-hidden="true" hidden></span>
+          </div>
+          <div class="temperature-scale" aria-hidden="true"><span>&lt;40°F</span><span>60</span><span>82</span><span>95</span><span>110+°F</span></div>
+        </div>
+        <p class="source" id="temperature-observed">Waiting for the first saved observation</p>
+      </article>
     </section>
 
     <section class="card forecast-card" aria-labelledby="forecast-heading">
@@ -152,9 +196,40 @@
   </main>
   <script>
     const $ = (id) => document.getElementById(id);
-    const compassPoints = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
-    const compass = (degrees) => degrees == null ? "—" : compassPoints[Math.round(degrees / 45) % 8];
     const time = (stamp) => stamp ? new Date(stamp).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "Time unavailable";
+
+    function updateTemperature(temperature) {
+      const meter = $("temperature-meter");
+      const marker = $("temperature-marker");
+      const category = $("temperature-category");
+      const analysis = $("temperature-analysis");
+      const analysisCopy = $("temperature-analysis-copy");
+      if (temperature == null) {
+        analysis.className = "temperature-analysis caution";
+        category.textContent = "Unavailable";
+        analysis.textContent = "Temperature unavailable";
+        analysisCopy.textContent = "The latest station report did not include temperature.";
+        marker.hidden = true;
+        meter.removeAttribute("aria-valuenow");
+        meter.setAttribute("aria-valuetext", "Temperature unavailable");
+        return;
+      }
+      const bounded = Math.max(0, Math.min(110, temperature));
+      marker.style.left = `${bounded / 110 * 100}%`;
+      marker.hidden = false;
+      let label, explanation, colorClass;
+      if (temperature < 40) { label = "Cold"; colorClass = "cold"; explanation = "Very cold conditions; surfaces may be icy."; }
+      else if (temperature < 60) { label = "Chilly"; colorClass = "caution"; explanation = "Cool conditions; dress for the temperature."; }
+      else if (temperature < 82) { label = "Comfortable"; colorClass = "comfortable"; explanation = "A comfortable temperature for skating."; }
+      else if (temperature < 95) { label = "Warm"; colorClass = "caution"; explanation = "Take water breaks and watch for overheating."; }
+      else { label = "Very hot"; colorClass = "hot"; explanation = "Heat caution: hydrate and consider a cooler time."; }
+      analysis.className = `temperature-analysis ${colorClass}`;
+      category.textContent = label;
+      analysis.textContent = `${label} · ${Math.round(temperature)}°F`;
+      analysisCopy.textContent = explanation;
+      meter.setAttribute("aria-valuenow", bounded.toFixed(1));
+      meter.setAttribute("aria-valuetext", `${Math.round(temperature)} degrees Fahrenheit, ${label}`);
+    }
 
     function updateIntensity(speed) {
       const meter = $("intensity-meter");
@@ -167,10 +242,10 @@
         meter.setAttribute("aria-valuetext", "Wind speed unavailable");
         return;
       }
-      const bounded = Math.max(0, Math.min(30, speed));
-      marker.style.left = `${bounded / 30 * 100}%`;
+      const bounded = Math.max(0, Math.min(20, speed));
+      marker.style.left = `${bounded / 20 * 100}%`;
       marker.hidden = false;
-      const category = speed < 10 ? "Low" : speed < 20 ? "Moderate" : "High";
+      const category = speed < 5 ? "Low" : speed < 10 ? "Moderate" : "High";
       name.textContent = category;
       meter.setAttribute("aria-valuenow", bounded.toFixed(1));
       meter.setAttribute("aria-valuetext", `${speed.toFixed(1)} mph, ${category} intensity`);
@@ -200,35 +275,25 @@
         verdict.textContent = "Wind speed unavailable";
         verdict.classList.add("mixed");
         copy.textContent = "The latest station report did not include a wind speed.";
-        $("along-route").textContent = "—";
-        $("crosswind").textContent = "—";
         return;
       }
       if (speed < 0.5) {
         verdict.textContent = "Calm";
         verdict.classList.add("good");
         copy.textContent = "The station reports little or no measurable wind.";
-        $("along-route").textContent = "Calm";
-        $("crosswind").textContent = "0.0 mph";
         return;
       }
       if (windFrom == null) {
         verdict.textContent = "Variable direction";
         verdict.classList.add("mixed");
         copy.textContent = `The station reports ${speed.toFixed(1)} mph, but no direction.`;
-        $("along-route").textContent = "Unavailable";
-        $("crosswind").textContent = "Unavailable";
         return;
       }
       const heading = Number(skateDirection.value);
       const windTo = (windFrom + 180) % 360;
       const delta = ((windTo - heading + 540) % 360) - 180;
       const along = speed * Math.cos(delta * Math.PI / 180);
-      const cross = Math.abs(speed * Math.sin(delta * Math.PI / 180));
       const headwind = -along;
-      const alongLabel = Math.abs(along) < 0.5 ? "Little along-route wind" : `${along > 0 ? "Tailwind" : "Headwind"} ${Math.abs(along).toFixed(1)} mph`;
-      $("along-route").textContent = alongLabel;
-      $("crosswind").textContent = `${cross.toFixed(1)} mph`;
 
       if (speed < 3) {
         verdict.textContent = "Light wind";
@@ -258,6 +323,22 @@
     };
     const safeText = (value) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[char]));
 
+    function withObservedCurrentWind(period) {
+      const observation = window.latestWind;
+      if (!observation || observation.wind_speed_mph == null || !period.start_time || !period.end_time) return period;
+      const now = Date.now();
+      if (new Date(period.start_time).getTime() > now || new Date(period.end_time).getTime() <= now) return period;
+      const observedDirection = observation.wind_direction_deg == null
+        ? period.wind_direction
+        : Object.keys(directionHeadings)[Math.round(observation.wind_direction_deg / 22.5) % 16];
+      return {
+        ...period,
+        wind_speed_min_mph: observation.wind_speed_mph,
+        wind_speed_max_mph: observation.wind_speed_mph,
+        wind_direction: observedDirection,
+      };
+    }
+
     function renderForecast(data) {
       const byDate = new Map();
       for (const period of data.periods || []) {
@@ -273,11 +354,9 @@
       }
       const heading = Number(skateDirection.value);
       const rows = days.map(([key, periods]) => {
-        const dayPeriods = periods.filter((period) => period.is_daytime && period.wind_speed_min_mph != null && period.wind_speed_max_mph != null);
+        const dayPeriods = periods.map(withObservedCurrentWind).filter((period) => period.is_daytime && period.wind_speed_min_mph != null && period.wind_speed_max_mph != null);
         const rated = dayPeriods.filter((period) => directionHeadings[period.wind_direction] != null);
         const speedValues = dayPeriods.flatMap((period) => [period.wind_speed_min_mph, period.wind_speed_max_mph]);
-        const dayTemperatures = dayPeriods.map((period) => period.temperature_f).filter((value) => value != null);
-        const temperatureLabel = dayTemperatures.length ? ` · ${Math.round(Math.max(...dayTemperatures))}°F daytime high` : "";
         const low = speedValues.length ? Math.min(...speedValues) : null;
         const high = speedValues.length ? Math.max(...speedValues) : null;
         const midSpeed = (period) => (period.wind_speed_min_mph + period.wind_speed_max_mph) / 2;
@@ -302,7 +381,7 @@
         for (const period of dayPeriods) if (period.wind_direction) directionCounts[period.wind_direction] = (directionCounts[period.wind_direction] || 0) + 1;
         const commonDirection = Object.entries(directionCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
         const directionLabel = commonDirection ? ` · mostly from ${commonDirection}` : "";
-        return `<article class="forecast-row"><div><p class="forecast-day">${safeText(dayLabel)}</p><p class="forecast-wind">${safeText(detail + temperatureLabel)}</p></div><p class="forecast-wind">${safeText(speedLabel + directionLabel)}</p><span class="rating ${ratingClass}">${safeText(label)}</span></article>`;
+        return `<article class="forecast-row"><div><p class="forecast-day">${safeText(dayLabel)}</p><p class="forecast-wind">${safeText(detail)}</p></div><p class="forecast-wind">${safeText(speedLabel + directionLabel)}</p><span class="rating ${ratingClass}">${safeText(label)}</span></article>`;
       }).join("");
       $("forecast-list").innerHTML = rows;
       $("forecast-updated").textContent = data.updated ? `NWS update ${time(data.updated)}` : "";
@@ -349,7 +428,8 @@
       }
 
       const heading = Number(skateDirection.value);
-      const rows = selected.map((period) => {
+      const rows = selected.map((forecastPeriod) => {
+        const period = withObservedCurrentWind(forecastPeriod);
         const low = period.wind_speed_min_mph;
         const high = period.wind_speed_max_mph;
         const speed = low == null || high == null ? null : (low + high) / 2;
@@ -369,18 +449,17 @@
         });
         const speedLabel = low == null || high == null ? "Unavailable" :
           `${Math.round(low)}${Math.round(low) === Math.round(high) ? "" : `-${Math.round(high)}`} mph`;
-        const temperatureLabel = period.temperature_f == null ? "Unavailable" : `${Math.round(period.temperature_f)}°F`;
         const directionCell = windHeading == null
           ? '<span class="wind-arrow unavailable" role="img" aria-label="Wind direction unavailable">—</span>'
           : `<span class="wind-arrow" role="img" style="--wind-to:${(windHeading + 180) % 360}deg" aria-label="Wind blowing toward ${oppositeDirections[period.wind_direction]}; reported from ${period.wind_direction}">↑</span>`;
-        return `<tr><td class="hourly-time">${safeText(timeLabel)}</td><td>${safeText(speedLabel)}</td><td>${safeText(temperatureLabel)}</td><td>${directionCell}</td><td><span class="hourly-effect ${effectClass}">${safeText(effect)}</span></td></tr>`;
+        return `<tr><td class="hourly-time">${safeText(timeLabel)}</td><td>${safeText(speedLabel)}</td><td>${directionCell}</td><td><span class="hourly-effect ${effectClass}">${safeText(effect)}</span></td></tr>`;
       }).join("");
-      $("hourly-breakdown").innerHTML = `<table class="hourly-table"><thead><tr><th scope="col">Time</th><th scope="col">Wind speed</th><th scope="col">Temperature</th><th scope="col">Wind flow</th><th scope="col">For your route</th></tr></thead><tbody>${rows}</tbody></table>`;
+      $("hourly-breakdown").innerHTML = `<table class="hourly-table"><thead><tr><th scope="col">Time</th><th scope="col">Wind speed</th><th scope="col">Wind flow</th><th scope="col">For your route</th></tr></thead><tbody>${rows}</tbody></table>`;
     }
 
     async function loadForecast() {
       try {
-        const response = await fetch("/api/forecast", { cache: "no-store" });
+        const response = await fetch(`/api/forecast?location=${encodeURIComponent($("location").value)}`, { cache: "no-store" });
         if (!response.ok) {
           const errorBody = await response.json().catch(() => null);
           if (response.status === 404) {
@@ -403,22 +482,24 @@
 
     async function refresh() {
       try {
-        const response = await fetch("/api/wind/latest", { cache: "no-store" });
+        const response = await fetch(`/api/wind/latest?location=${encodeURIComponent($("location").value)}`, { cache: "no-store" });
         if (!response.ok) throw new Error(`Server returned ${response.status}`);
         const data = await response.json();
         const latest = (data.observations || [])[0];
         if (latest) {
           window.latestWind = latest;
           updateSkateOutlook(latest);
+          if (window.forecastData) {
+            renderForecast(window.forecastData);
+            renderHourlyBreakdown(window.forecastData);
+          }
           $("speed").textContent = latest.wind_speed_mph == null ? "—" : latest.wind_speed_mph.toFixed(1);
           updateIntensity(latest.wind_speed_mph);
-          $("gust").textContent = `Gust ${latest.wind_gust_mph == null ? "—" : `${latest.wind_gust_mph.toFixed(1)} mph`}`;
-          $("temperature").textContent = `Temperature ${latest.temperature_f == null ? "—" : `${Math.round(latest.temperature_f)}°F`}`;
+          $("temperature").textContent = latest.temperature_f == null ? "—" : `${Math.round(latest.temperature_f)}`;
+          updateTemperature(latest.temperature_f);
+          $("temperature-observed").textContent = `Observed ${time(latest.observed_at)}`;
+          $("station-context").textContent = `Observed at ${latest.station_name || latest.station_id}`;
           const calm = latest.wind_speed_mph != null && latest.wind_speed_mph < 0.5;
-          const directionUnavailable = latest.wind_direction_deg == null;
-          const windLabel = directionUnavailable ? (calm ? "Calm" : latest.wind_speed_mph == null ? "Unavailable" : "Variable") : `${Math.round(latest.wind_direction_deg)}°`;
-          $("direction").textContent = windLabel;
-          $("compass").textContent = directionUnavailable ? windLabel : compass(latest.wind_direction_deg);
           const observationAgeMinutes = (Date.now() - new Date(latest.observed_at).getTime()) / 60000;
           if (latest.using_previous_report) {
             $("observed").textContent = `Using last usable wind report from ${time(latest.observed_at)}; newer report at ${time(latest.latest_station_report_at)} had incomplete wind data.`;
@@ -441,6 +522,7 @@
     setInterval(refresh, 5 * 60 * 1000);
     loadForecast();
     setInterval(loadForecast, 30 * 60 * 1000);
+    $("location").addEventListener("change", () => { refresh(); loadForecast(); });
   </script>
 </body>
 </html>

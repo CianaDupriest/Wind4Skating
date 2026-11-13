@@ -13,12 +13,13 @@ from urllib.parse import urlparse, parse_qs
 from .storage import DEFAULT_DB, latest_wind_observation, list_observations, save_observation
 from .weather import fetch_latest_observation
 from .forecast import fetch_hourly_forecast
+from .locations import LOCATIONS
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 
 
-def collect(db_path: Path) -> None:
-    observation = fetch_latest_observation()
+def collect(db_path: Path, location: str = "okc") -> None:
+    observation = fetch_latest_observation(location)
     inserted = save_observation(observation, db_path)
     fallback = observation.get("fallback_observation")
     if fallback:
@@ -26,7 +27,7 @@ def collect(db_path: Path) -> None:
     speed = observation["wind_speed_mph"]
     speed_text = "missing" if speed is None else f"{speed:.1f} mph"
     status = "saved" if inserted else "already stored"
-    print(f"{observation['observed_at']}: {speed_text} ({status})")
+    print(f"{LOCATIONS[location]['name']} {observation['observed_at']}: {speed_text} ({status})")
     if fallback:
         print(
             f"Saved previous usable report: {fallback['observed_at']} "
@@ -38,10 +39,11 @@ def collect(db_path: Path) -> None:
 
 def _collect_periodically(db_path: Path, interval_seconds: int) -> None:
     while True:
-        try:
-            collect(db_path)
-        except Exception as exc:
-            print(f"Wind collection failed: {exc}")
+        for location in LOCATIONS:
+            try:
+                collect(db_path, location)
+            except Exception as exc:
+                print(f"{LOCATIONS[location]['name']} wind collection failed: {exc}")
         time.sleep(interval_seconds)
 
 
@@ -49,12 +51,16 @@ def serve(db_path: Path, host: str, port: int, collection_interval_minutes: int)
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:  # noqa: N802 - stdlib handler API
             parsed = urlparse(self.path)
+            location = parse_qs(parsed.query).get("location", ["okc"])[0]
+            if location not in LOCATIONS:
+                self.send_error(400, "Unsupported location")
+                return
             if parsed.path == "/":
                 self._send_file(WEB_DIR / "index.html", "text/html; charset=utf-8")
                 return
             if parsed.path == "/api/forecast":
                 try:
-                    body = json.dumps(fetch_hourly_forecast()).encode()
+                    body = json.dumps(fetch_hourly_forecast(location)).encode()
                 except Exception as exc:
                     print(f"Forecast request failed: {exc}")
                     body = json.dumps({"error": f"Forecast unavailable: {exc}"}).encode()
@@ -72,12 +78,12 @@ def serve(db_path: Path, host: str, port: int, collection_interval_minutes: int)
                 self.send_error(400, "limit must be an integer")
                 return
             if parsed.path.endswith("/latest"):
-                latest = latest_wind_observation(db_path)
+                latest = latest_wind_observation(db_path, LOCATIONS[location]["station_id"])
                 items = [latest] if latest else []
             else:
-                items = list_observations(db_path, limit=limit)
+                items = list_observations(db_path, limit=limit, station_id=LOCATIONS[location]["station_id"])
             body = json.dumps(
-                {"location": "Oklahoma City, Oklahoma", "observations": items}
+                {"location": LOCATIONS[location]["name"], "observations": items}
             ).encode()
             self._send(body, "application/json; charset=utf-8")
 
