@@ -25,6 +25,7 @@ Requires Python 3.10 or newer. The app uses only the Python standard library, so
 From the project directory, start the dashboard and collector:
 
 ```powershell
+python -m wind_skating collect
 python -m wind_skating serve
 ```
 
