@@ -61,6 +61,9 @@ def serve(db_path: Path, host: str, port: int, collection_interval_minutes: int)
             if parsed.path == "/":
                 self._send_file(WEB_DIR / "index.html", "text/html; charset=utf-8")
                 return
+            if parsed.path == "/styles.css":
+                self._send_file(WEB_DIR / "styles.css", "text/css; charset=utf-8")
+                return
             if parsed.path == "/api/forecast":
                 try:
                     body = json.dumps(fetch_hourly_forecast(location)).encode()
