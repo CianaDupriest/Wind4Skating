@@ -9,7 +9,7 @@ from pathlib import Path
 
 DEFAULT_DB = Path("data/wind_observations.sqlite3")
 
-# Connects to the SQLite database.
+# Connects to the SQLite database and creates the observations table if it doesn't exist.
 def connect(db_path: Path = DEFAULT_DB) -> sqlite3.Connection:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(db_path)

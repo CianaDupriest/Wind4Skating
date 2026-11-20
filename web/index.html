@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f4f7f5">
-  <title>Wind4Skating · OKC Skate Wind</title>
+  <title>Wind4Skating</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -170,11 +170,15 @@
         headwind = -speed * Math.cos(delta * Math.PI / 180);
         windDescription = headwind >= 2 ? "Headwind" : headwind <= -2 ? "Tailwind" : "Mostly crosswind";
       }
-      // Start at 7; along-route wind can move the score by up to 2 points.
-      let score = 7 - Math.max(-2, Math.min(2, headwind / 5));
+      // Score wind and temperature separately, then weight wind direction 70%.
+      const windAdjustment = headwind >= 0
+        ? Math.min(6, headwind / 2.5)
+        : Math.max(-2, headwind / 5);
+      const windScore = 7 - windAdjustment;
       // Comfortable temperatures (60–82°F) keep the full temperature score.
       const tempPenalty = temperature < 60 ? Math.min(5, (60 - temperature) / 8) : temperature > 82 ? Math.min(6, (temperature - 82) / 4) : 0;
-      score = Math.max(1, Math.min(10, Math.round(score - tempPenalty)));
+      const temperatureScore = Math.max(1, 10 - tempPenalty);
+      const score = Math.max(1, Math.min(10, Math.round(windScore * 0.7 + temperatureScore * 0.3)));
       verdict.textContent = `${score} / 10`;
       verdict.classList.add(score >= 7 ? "good" : score <= 4 ? "bad" : "mixed");
       const windSign = windDescription === "Tailwind" ? "+" : windDescription === "Headwind" ? "−" : "·";
